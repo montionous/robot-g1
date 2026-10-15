@@ -66,13 +66,13 @@ content/opera/
 
 这描述的是代码参数门控，不代表动作执行、机器人兼容性或现场效果已经验证。本轮没有调用动作执行方法。
 
-执行器源码仍未提供：`scripts/g1_elder_companion_motion_executor.py` 与 `scripts/g1_elder_companion_custom_action_executor.py`。默认解释器是 `/home/user/miniconda3/envs/tv/bin/python`，默认网卡为 `enp3s0`，分别支持 `G1_ACTION_PYTHON` 和 `G1_ACTION_INTERFACE` 环境覆盖。
+执行器源码现已提供：`scripts/g1_elder_companion_motion_executor.py` 与 `scripts/g1_elder_companion_custom_action_executor.py`。默认解释器是 `/home/user/miniconda3/envs/tv/bin/python`，默认网卡为 `enp3s0`，分别支持 `G1_ACTION_PYTHON` 和 `G1_ACTION_INTERFACE` 环境覆盖。两份脚本均依赖 Unitree SDK、DDS 和 G1/Dex3；本轮只做静态审查，没有运行其 CLI、初始化 DDS 或连接机器人。完整边界见 [G1 动作执行器说明](ROBOT_ACTIONS.md)。
 
 源码的 `_motion_lock` 是客户端实例成员，只保证同一实例的互斥，不是不同客户端或不同进程之间的全局互斥。执行结果中的 `completed` 来自执行器进程退出码，本模块没有验证实际肢体动作完成。
 
 ## 仍需补齐的内容
 
-- 两个外部动作执行器及其依赖，用于验证真实动作执行；公共动作包已收到，导入阻断已解除。
+- Unitree SDK、DDS/设备网络配置和现场安全验收，用于验证已收到的两个动作执行器能否真实执行；公共动作包和执行器源码均已收到，导入阻断已解除。
 - 本地媒体及其目录、格式信息；当前云仓库三个媒体目录为空，未生成假音频补齐演示。
 - `build/g1_companion_pcm_bridge` 的源码与构建配置、官方 SDK 外部依赖。播放还需要 `ffmpeg`，本轮未验证其转换流程。
 - 老人基表及匿名演示数据，用于验证需求关联与写入；无需上传真实老人数据库。

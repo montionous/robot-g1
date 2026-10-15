@@ -2,7 +2,7 @@
 
 ## 范围与来源
 
-从用户提供的文本附件和源码包导入原项目 `/home/user/github-product/g1-dex3-care-vla` 中已收到的文件，保留 `speech/` 与 `care_console/` 层级。此仓库当前承载语音、日常陪伴和护理工作台源码，不包含完整机器人项目。
+从用户提供的文本附件和源码包导入原项目 `/home/user/github-product/g1-dex3-care-vla` 中已收到的文件，保留 `speech/`、`care_console/` 与相关根目录 `scripts/` 层级。此仓库当前承载语音、日常陪伴、护理工作台和已收到的动作执行器源码，不包含完整机器人项目。
 
 原项目的 `AGENTS.md` 保存为 `docs/upstream-project-rules.md`，用于保留原团队的控制边界、停止条件和协作约定；其中的历史训练路线、绝对路径和情绪模块状态不代表本仓库已经具备这些组件。
 
@@ -14,6 +14,8 @@
 - 共享需求与会话模块：`speech/elder_need_registry.py`、`speech/decision_announcer.py`、`speech/companion_recording.py`、`speech/init_elder_need_db.py`。
 - 共享老人/家属基表：`speech/data/init_db.py`，创建 `elderly_person`、`family_contact` 和 `contact_call_log`；若未找到名为 `王大爷` 的老人记录，会写入比赛示例老人和两名电话占位联系人。
 - 动作客户端：`speech/robot_actions/action_client.py`、`speech/robot_actions/__init__.py`。
+- G1 动作执行器：`scripts/g1_elder_companion_motion_executor.py`、`scripts/g1_elder_companion_custom_action_executor.py`，是动作客户端固定定位的两个脚本。
+- 历史视觉情绪联调材料：`scripts/g1_elder_companion_emotion_demo.py`、`g1_elder_companion_emotion_preflight.sh` 及五个 `g1_elder_companion_emotion_*_run.sh`。它们未接入当前四个场景，保留原路径以记录原有独立联调链。
 - 内层语音包：`speech/speech/` 下 9 个 Python 文件，含 ASR、TTS、播放、预设、包客户端、直接语音接口及娱乐回复模板。
 - G1 音频组件：`speech/g1_audio/` 下 6 个 Python 文件，含单次/连续录音、滚动 ASR、播放封装和娱乐打断。
 - 照护咨询：`speech/scenarios/care_consultation_support/` 下 25 个 Python 文件和含 35 条知识卡的 `care_knowledge.json`。两份同名源码附件内容相同，只导入一次。
@@ -30,7 +32,7 @@
 - 原语音文档及依赖：`speech/README.md`、`speech/TEAM_USAGE.md`、`speech/requirements.txt`。
 - 原项目规则快照：`docs/upstream-project-rules.md`。
 
-合计保留 146 个原项目文件，其中 115 个位于 `speech/`、27 个位于 `care_console/`，包含 120 个 Python 文件和 10 个 Shell 脚本。第二批再次提供的 `speech/speech/service.py` 与首批内容一致，没有覆盖出不同版本。
+合计保留 155 个原项目文件，其中 115 个位于 `speech/`、27 个位于 `care_console/`、12 个位于 `scripts/`，包含 123 个 Python 文件和 16 个 Shell 脚本。第二批再次提供的 `speech/speech/service.py` 与首批内容一致，没有覆盖出不同版本。
 
 ## 现用场景与废弃场景
 
@@ -39,6 +41,8 @@
 用户已明确确认以下三个场景废弃：`elder_companion`、`caregiver_chat`、`short_companion_chat`。当前收到的源码未包含这三个场景目录，没有将其纳入现用场景入口。后续若收到这些目录，先检查共享依赖，再单独归档并保留来源。
 
 第二批附件主要包含公共包与 G1 音频组件，不包含额外的 `scenarios/` 目录。`$HOME/.config/elder_companion/cloud.env` 是现有脚本共用的配置路径，不因与废弃场景同名而删除或改名。
+
+本批的七个 `g1_elder_companion_emotion_*` 文件是未接入当前四个场景的历史独立视觉情绪/实机联调材料。它们的文件名前缀与已废弃场景相同，但没有据此删除或把它们当成当前默认入口；仅在保留的原 `speech/README.md` 中存在 `emotion_demo.py` 与 `emotion_preflight.sh` 的手工示例。
 
 | 模块 | 当前可确认的调用证据 | 整理状态 |
 | --- | --- | --- |
@@ -78,6 +82,14 @@
 
 联系家属入口、联系人绑定与拨号授权见 [联系家属模块说明](CONTACT_FAMILY.md)。当前语音入口只开放 `safe_stub` 和 `real`；后端类还保留会调用外部脚本的 `dry_run`，本轮没有执行外部脚本。旧网页模拟通话函数仍在源码中，当前主链不调用，不能以启动网页服务推定已接入。
 
+## 动作执行器与历史视觉情绪链
+
+`speech/robot_actions/action_client.py` 固定调用项目根的两个执行器。`motion` 请求仅接受已确认的 `emotion_dialogue_motion_request`，动作 ID 限制为 17（鼓掌）和 25（挥手）；`custom` 请求仅接受已确认的 `emotion_dialogue_custom_action_request`，动作名限制为 `open_palm_invite`。动作客户端将 `greeting`、`goodbye`、`celebrate` 映射到前者，将 `present`、`acknowledge` 映射到后者。
+
+当前直接使用动作客户端的入口是娱乐普通版、娱乐展示版和社交活动展示版。照护咨询、联系家属和社交普通版没有该客户端引用。客户端默认 `dry-run`；只有同时指定执行模式与写入确认时才启动执行器。动作客户端的默认解释器与网卡仍是原机器的 `/home/user/miniconda3/envs/tv/bin/python` 和 `enp3s0`，可由 `G1_ACTION_PYTHON`、`G1_ACTION_INTERFACE` 覆盖。
+
+两个执行器会在实际运行时初始化 Unitree SDK 和 DDS：motion 路径可调用 ArmAction 并向 Dex3 手指 topic 写入，custom 路径会注册自定义动作 API 并复用同一套 Dex3 控制逻辑。因此源码已收到不代表 SDK、网卡、G1/Dex3 兼容性或动作效果已验证。本轮未运行其任何 CLI，`--inspect` 也没有运行，因为它会订阅 DDS。详细文件范围、门控和历史视觉情绪材料见 [G1 动作执行器说明](ROBOT_ACTIONS.md)。
+
 ## 语音调用路径
 
 1. 外层 `speech/speech_client.py` 的 `SpeechClient` 请求 `/health`、`/speak` 和 `/asr`，并提供 G1 录音与 PCM bridge 播放接口。内层 `speech/speech/client.py` 是另一个 HTTP 客户端，由内层包的 `__init__.py` 导出；二者保留原有接口，不合并或重命名。
@@ -111,7 +123,7 @@
 - 联系家属的 Shell 入口、编排器和 Android client 已收到；Shell 仍固定依赖原机器的 `speech/venv/bin/python`。编排器的原有自动测试尚未收到，实际编排和电话链仍未验证。
 - 当前活动 SQLite 未初始化或填充；内存演练与已收到的展示测试不替代真实 SQL、报名记录、工作人员通知及日程刷新验收。
 - 娱乐陪伴的实际媒体。当前仓库的音乐、新闻、戏曲目录均为空；展示入口检查至少两首音乐、一条新闻、一段戏曲。展示 unittest 已收到，打断等其他验收脚本仍未上传。
-- 动作执行器：项目根 `scripts/g1_elder_companion_motion_executor.py`、`scripts/g1_elder_companion_custom_action_executor.py` 及其依赖。动作客户端已收到，但默认引用原机器的 `tv` Python 环境和 `enp3s0`；源码可通过 `G1_ACTION_PYTHON`、`G1_ACTION_INTERFACE` 覆盖，尚未验证实机兼容。
+- 动作执行器源码已收到：项目根 `scripts/g1_elder_companion_motion_executor.py`、`scripts/g1_elder_companion_custom_action_executor.py`。仍缺可验证的 Unitree SDK/版本、DDS 与设备网络配置、现场安全前置条件和实机兼容性结果；动作客户端默认引用原机器的 `tv` Python 环境和 `enp3s0`，源码可通过 `G1_ACTION_PYTHON`、`G1_ACTION_INTERFACE` 覆盖。
 - 共享老人/家属基表初始化源码已收到，但仍缺已有 SQLite 数据库的迁移、同名老人联系人回填和稳定老人 ID 对齐方案。`init_elder_need_db.py` 只创建共享需求表及索引；照护完整链仍需其余会话、记忆和个人档案表及受控演示种子。
 - 护理工作台源码、静态页、测试和运行时依赖清单已收到；尚缺原 README、审计/部署文档、systemd/Nginx 配置、真实控制台数据库、认证文件和受控启动配置。控制台与四场景的真实日志登记尚未验收。
 - G1 播放 bridge：默认查找项目根目录下的 `build/g1_companion_pcm_bridge`。其源码和构建配置尚未收到；官方 SDK 保持外部依赖，不复制 SDK 源码。娱乐打断模块还要求该二进制支持 `--allow-interrupt`、`SIGUSR1` 和对应 JSON 回执，不能用任意同名播放器代替。
@@ -138,13 +150,16 @@
 - 根目录 `scripts/g1_call_owner_once.sh` 默认使用配对手机的私网 URL、原机器绝对 token 路径和 `speech/venv/bin/python`。`G1_PHONE_URL`、`G1_PHONE_TOKEN_FILE`、`G1_PHONE_RUNS_DIR` 分别覆盖 URL、token 路径和输出父目录，解释器仍固定。它将参数交给 `g1_contact_family_call.py`：无参数时向编排器传确认选项，Shell 本身不进行交互确认；编排器再要求现场精确语音“确认拨号”。
 - `playback.py` 的旧播放器默认路径为 `/home/unitree/medication_robot/bin/g1_play_wav`，可用 `G1_WAV_PLAYER` 覆盖。
 - 麦克风模块用 `192.168.123.164` 作为网卡选择目标，接收 `239.168.123.161:5555` 的音频多播；与上游规则中的设备地址不完全一致，保留原值，等待现用机器验证。
+- 两个动作执行器默认 DDS 网卡为 `enp3s0`；`action_client.py` 默认用原机器的 `tv` Python 启动它们。历史视觉情绪的 dialogue wrapper 也固定这些原机路径，并额外依赖视觉虚拟环境、模型、PCM bridge、wake-mode 脚本、云配置和本机护理工作台；它们不作为四个现用场景的默认入口。
 - 原 README 同时包含早期 Windows、旧服药兼容接口和情绪联调内容，不能作为当前四场景的完整运行说明。
 
 上述行为均保留原状，待源码和实际运行命令齐全后再作有针对性的调整。配置文件只记录路径和变量名，不导入密钥值。
 
 ## 验证状态
 
-当前累计 120 个 Python 文件、10 个 Shell 脚本，执行导入内容一致性检查、Python AST 语法解析、`bash -n` 和三份 JSON 检查。重复的 `service.py` 和照护咨询重复源码附件单独核对一致。没有执行会话配置、刷新数据库、监听麦克风或启动播放。
+当前累计 123 个 Python 文件、16 个 Shell 脚本，执行导入内容一致性检查、Python AST 语法解析、`bash -n` 和三份 JSON 检查。重复的 `service.py` 和照护咨询重复源码附件单独核对一致。没有执行会话配置、刷新数据库、监听麦克风或启动播放。
+
+本批九个动作执行器/情绪联调文件在解压前通过路径与链接类型检查，导入后逐文件与附件核对一致。三个 Python 文件只做 AST 语法解析，六个 Shell 文件只做 `bash -n`；静态审查未发现凭据字面量。没有导入或运行执行器 CLI、DDS、Unitree SDK、相机、视觉模型、云服务、PCM bridge、wake-mode、护理工作台或任何机器人动作。
 
 护理工作台附件在解压前通过路径和链接类型检查，导入后逐文件与附件一致。18 个工作台 Python 文件和静态资源检查通过；除会直接启动 Uvicorn 的 `care_console.__main__` 外，10 个运行模块在拦截 SQLite、子进程和 HTTP 调用的条件下导入成功。工作台原有 Node UI 测试 14 项全部通过。选择运行的 84 个 Python 测试中 83 项通过、1 项失败：删除后重建同一路径 JSONL 的恢复测试依赖 inode 复用，本环境检测到新 inode 后按源码重读仍保留的无效首行，因而持续报告“记录被拒绝”。该失败可重复，源码和原断言均未修改。未运行会启动 loopback server、Shell 子进程或 `python -m care_console` 子进程的两份工作台测试；没有启动 Uvicorn、创建仓库数据库、访问真实共享库或业务网络。
 
