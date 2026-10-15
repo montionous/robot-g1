@@ -1,0 +1,46 @@
+{
+  "music": [
+    {
+      "id": "music_001",
+      "title": "舒缓轻音乐一",
+      "path": "content/music/light_music_01.wav",
+      "enabled": true
+    },
+    {
+      "id": "music_002",
+      "title": "舒缓轻音乐二",
+      "path": "content/music/light_music_02.wav",
+      "enabled": true
+    }
+  ],
+
+  "news": [
+    {
+      "id": "news_001",
+      "title": "体育简讯一",
+      "path": "content/news/sports_news_01.wav",
+      "enabled": true
+    },
+    {
+      "id": "news_002",
+      "title": "体育简讯二",
+      "path": "content/news/sports_news_02.wav",
+      "enabled": true
+    }
+  ],
+
+  "opera": [
+    {
+      "id": "opera_001",
+      "title": "戏曲片段一",
+      "path": "content/opera/opera_01.wav",
+      "enabled": true
+    },
+    {
+      "id": "opera_002",
+      "title": "戏曲片段二",
+      "path": "content/opera/opera_02.wav",
+      "enabled": true
+    }
+  ]
+}
