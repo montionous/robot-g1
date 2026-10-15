@@ -2,7 +2,7 @@
 
 ## 导入范围与入口
 
-目录为 `speech/scenarios/contact_family/`。本批导入 11 个 Python 文件，此前已导入 `run_g1_demo.sh` 和 `run_mock_call_server.sh`。所有业务逻辑保留原样。
+目录为 `speech/scenarios/contact_family/`，已导入 11 个 Python 文件、`run_g1_demo.sh` 和 `run_mock_call_server.sh`。本轮补入 `speech/test_contact_family_call_backend.py` 和 `speech/test_contact_family_dial_authorization.py`。所有业务逻辑和测试断言保留原样。
 
 | 入口 | 源码实际行为 |
 | --- | --- |
@@ -93,7 +93,6 @@ SQLite 连接使用普通可写连接。数据库文件不存在且父目录存�
 
 - 仓库根目录 `scripts/g1_phone_dial.py`、`scripts/g1_call_owner_once.sh`。
 - 老人基表、家属联系人表、通话日志表的建表脚本和匿名演示数据。
-- 原有 `speech/test_contact_family_call_backend.py`、`speech/test_contact_family_dial_authorization.py`。
 - 用户确认各入口的现用、比赛或归档定位，以及网页模拟通话路径是否计划重新接入。
 - 真实 SQLite 业务链、网页音频交换、云 ASR/TTS、G1 音频、Android 预检、拨号请求与实机接通情况。
 
@@ -104,4 +103,19 @@ SQLite 连接使用普通可写连接。数据库文件不存在且父目录存�
 - `g1_voice_demo.py`、`text_demo.py`、`contact_family_db_demo.py` 的 `--help` 均加载并正常退出，没有进入场景函数。
 - `test_db.py` 只做语法和内容一致性检查，没有导入、执行或自动收集。
 
-验证使用 Python 3.12.14 和前批临时安装的 `requests==2.34.2`，不代表原机器人环境版本，也未改写依赖清单。本轮未拨号、未启动服务、未访问或创建老人数据库。电话后端功能测试尚未收到，以上检查不替代拨号授权、数据库或实机验收。
+上述导入验证使用 Python 3.12.14 和前批临时安装的 `requests==2.34.2`，不代表原机器人环境版本，也未改写依赖清单。没有拨号、启动服务或访问、创建老人数据库。
+
+## 原有后端与拨号授权测试
+
+本轮在 Python 3.12.14 下明确选择两个原测试模块运行，不进行全仓自动收集。这两份测试只需要 Python 标准库。
+
+| 原测试文件 | 实际结果 | 覆盖内容 |
+| --- | --- | --- |
+| `test_contact_family_call_backend.py` | 7 项：6 通过、1 错误、0 断言失败、0 跳过 | 非法模式、JSON/旧文本解析、`dry_run` 准备/拨号、`real` 底层 client 参数转发 |
+| `test_contact_family_dial_authorization.py` | 11 项全部通过 | 精确授权、空格标点归一化、泛化肯定/扩展句拒绝、取消和授权状态转换 |
+
+合计 18 项实际执行，17 通过、1 错误，合并执行退出码为 1。错误项为 `ContactCallBackendTest.test_dry_run_prepare`：`_run_script()` 会先检查 `scripts/g1_call_owner_once.sh` 是否存在，当前缺少该文件而抛出 `CallBackendError`。原测试只 mock 后续的 `subprocess.run`，所以尚未运行到模拟子进程结果的断言。这是当前依赖缺失，不能记作通过；本轮没有补占位脚本或修改测试。
+
+两个 `real` 用例 mock 整个 `_run_phone_client`，只验证参数转发与结果处理，不读取 token、不访问手机。授权状态测试手动放入合成联系人并设置初始状态，电话字段为 `placeholder`，没有查询真实联系人。受控执行未尝试数据库连接、业务网络或子进程调用。
+
+这些用例没有覆盖 `safe_stub`、owner 联系人绑定、语音入口的“绑定—准备—授权—拨号”整体接线，或真实 client 的命令、token、异常和超时行为。后端类自身仍不验证会话授权，不能由这些单元测试推定整条电话链已经完成验收。
