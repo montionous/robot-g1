@@ -12,16 +12,18 @@
 
 - 服务及 G1 客户端：`speech/server.py`、`speech/speech_client.py`。
 - 共享需求与会话模块：`speech/elder_need_registry.py`、`speech/decision_announcer.py`、`speech/companion_recording.py`、`speech/init_elder_need_db.py`。
+- 动作客户端：`speech/robot_actions/action_client.py`、`speech/robot_actions/__init__.py`。
 - 内层语音包：`speech/speech/` 下 9 个 Python 文件，含 ASR、TTS、播放、预设、包客户端、直接语音接口及娱乐回复模板。
 - G1 音频组件：`speech/g1_audio/` 下 6 个 Python 文件，含单次/连续录音、滚动 ASR、播放封装和娱乐打断。
 - 照护咨询：`speech/scenarios/care_consultation_support/` 下 25 个 Python 文件和含 35 条知识卡的 `care_knowledge.json`。两份同名源码附件内容相同，只导入一次。
 - 娱乐陪伴：`speech/scenarios/companion_entertainment/` 下 15 个 Python 文件，以及用户提供的 `content_catalog.json`、`news_scripts.json`；未导入音频素材。
+- 娱乐展示验收：`speech/test_companion_entertainment_showcase.py`，包含 15 项原有 unittest，保持断言原样。
 - 语音服务启动及会话配置脚本：`speech/run_server.sh`、`speech/companion_recording_env.sh`。
 - 四场景启动脚本：下表中的七个脚本。
 - 原语音文档及依赖：`speech/README.md`、`speech/TEAM_USAGE.md`、`speech/requirements.txt`。
 - 原项目规则快照：`docs/upstream-project-rules.md`。
 
-合计保留 77 个原项目文件，其中 76 个位于 `speech/`，包含 61 个 Python 文件和 9 个 Shell 脚本。第二批再次提供的 `speech/speech/service.py` 与首批内容一致，没有覆盖出不同版本。
+合计保留 80 个原项目文件，其中 79 个位于 `speech/`，包含 64 个 Python 文件和 9 个 Shell 脚本。第二批再次提供的 `speech/speech/service.py` 与首批内容一致，没有覆盖出不同版本。
 
 ## 现用场景与废弃场景
 
@@ -59,7 +61,7 @@
 | 联系家属 | `run_g1_demo.sh` | `g1_voice_demo.py`，未收到 |
 | 联系家属模拟通话 | `run_mock_call_server.sh` | `mock_call_server.py`，未收到 |
 
-脚本均位于 `speech/scenarios/<场景目录>/`。娱乐陪伴两个语音入口均顶层导入未上传的 `robot_actions.RobotActionClient`，目前无法完整加载；`--robot-actions off/dry-run` 不能绕过缺失包。
+脚本均位于 `speech/scenarios/<场景目录>/`。本批已补齐娱乐两个语音入口顶层导入的 `robot_actions.RobotActionClient`，两入口的 `--help` 均能加载并正常退出；未启动语音或机器人流程。
 
 照护咨询的 API、文本和 G1 语音入口的能力及收尾行为不同，详见 [照护咨询模块说明](CARE_CONSULTATION.md)。JSON 知识检索模块也尚未在本批控制器主链中接入，不把知识库文件已导入等同于运行链已使用。
 
@@ -76,7 +78,8 @@
 ## 还缺少的直接依赖
 
 - 社交活动、联系家属的主体入口，以及它们引用的控制器、意图识别、数据库结构、内容目录和测试。
-- 娱乐陪伴的 `speech/robot_actions/` 源码和实际媒体。当前仓库的音乐、新闻、戏曲目录均为空；展示入口检查至少两首音乐、一条新闻、一段戏曲。原项目已有的娱乐验收脚本也尚未上传。
+- 娱乐陪伴的实际媒体。当前仓库的音乐、新闻、戏曲目录均为空；展示入口检查至少两首音乐、一条新闻、一段戏曲。展示 unittest 已收到，打断等其他验收脚本仍未上传。
+- 动作执行器：项目根 `scripts/g1_elder_companion_motion_executor.py`、`scripts/g1_elder_companion_custom_action_executor.py` 及其依赖。动作客户端已收到，但默认引用原机器的 `tv` Python 环境和 `enp3s0`；源码可通过 `G1_ACTION_PYTHON`、`G1_ACTION_INTERFACE` 覆盖，尚未验证实机兼容。
 - 老人数据基础：`elderly_person` 基表初始化和匿名演示种子尚未收到。`init_elder_need_db.py` 已收到，但只创建共享需求表及索引，不创建基表或 `speech/data/` 父目录；不能用真实老人数据库补迁移。
 - 原项目根目录的 `care_console` 包：`companion_recording_env.sh` 执行 `python3 -m care_console.link`，传入老人 ID 和日志路径，默认控制台 URL 为 `http://127.0.0.1:8766`。尚未收到该模块，无法确认它对控制台连接的要求和失败处理。
 - G1 播放 bridge：默认查找项目根目录下的 `build/g1_companion_pcm_bridge`。其源码和构建配置尚未收到；官方 SDK 保持外部依赖，不复制 SDK 源码。娱乐打断模块还要求该二进制支持 `--allow-interrupt`、`SIGUSR1` 和对应 JSON 回执，不能用任意同名播放器代替。
@@ -106,7 +109,7 @@
 
 ## 验证状态
 
-当前累计 61 个 Python 文件、9 个 Shell 脚本，执行导入内容一致性检查、Python AST 语法解析、`bash -n` 和三份 JSON 检查。重复的 `service.py` 和照护咨询重复源码附件单独核对一致。没有执行会话配置、刷新数据库、监听麦克风或启动播放。
+当前累计 64 个 Python 文件、9 个 Shell 脚本，执行导入内容一致性检查、Python AST 语法解析、`bash -n` 和三份 JSON 检查。重复的 `service.py` 和照护咨询重复源码附件单独核对一致。没有执行会话配置、刷新数据库、监听麦克风或启动播放。
 
 本批还在 Python 3.12.14 下验证了 9 个模块导入：四个新共享模块，以及 `care_controller`、`g1_voice_demo`、`care_api`、`text_demo`、`test_showcase_offline_chain`。因当前机器缺少 `requests`，仅向 `/tmp/g1-care-import-deps-batch4` 安装 `requests==2.34.2` 及其依赖用于检查；这不是原机器人环境的版本声明，也未修改 `requirements.txt`。检查拦截数据库、出站连接和子进程调用；请求库的本地 IPv6 能力探测被拦截，业务模块未尝试这些操作。未调用任何场景函数、初始化函数或测试 `main()`。
 
@@ -114,7 +117,9 @@
 
 本批补齐了该验收脚本的共享源码导入依赖，但数据库前置条件仍未改变，因此没有重复运行同一个会在前置检查停止的命令。
 
-娱乐陪伴另有 12 个控制与媒体模块导入通过；两个语音入口均复现 `ModuleNotFoundError: robot_actions`。新闻音频生成脚本导入时要求云密钥且有目录创建操作，只做静态检查，未导入或执行。已运行原有规则脚本的 14 个样例及文字入口的 5 轮输入；缺媒体时返回 `empty`/`not_found`，停止指令正常结束。它们是已有程序演练，不是自动断言测试套件，也没有验证实际播放。检查只创建了空媒体子目录及忽略的运行目录。
+娱乐陪伴的 12 个控制与媒体模块导入通过；两个语音入口前批因缺 `robot_actions` 受阻，本批补齐真实动作模块后，分别执行 `--help` 加载并退出成功。新闻音频生成脚本只做静态检查，未导入或执行。前批已运行原有规则脚本的 14 个样例及文字入口的 5 轮输入；媒体为空时返回 `empty`/`not_found`，停止指令正常结束，未验证实际播放。
+
+本批明确选择原有 `test_companion_entertainment_showcase` 套件运行，15 项实际执行：12 项通过、3 项失败、0 错误、0 跳过，测试退出码为 1。三项失败是分类结果与测试期望不同，详见娱乐模块文档；随后逐例核对，状态机均返回 `ignore` 且状态未改变。这些诊断不替代原测试，也没有把该套件记为通过。业务源码和测试断言均保持原样。
 
 HTTP 启动、云 ASR/TTS、数据库业务行为、真实拨号及 G1 录音/播放均未验证。当前仍缺少其他场景、公共依赖、相关服务、PCM bridge 和运行配置，不能认定项目可独立运行。
 
