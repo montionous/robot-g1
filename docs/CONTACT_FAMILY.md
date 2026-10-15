@@ -2,7 +2,7 @@
 
 ## 导入范围与入口
 
-目录为 `speech/scenarios/contact_family/`，已导入 11 个 Python 文件、`run_g1_demo.sh` 和 `run_mock_call_server.sh`。本轮补入 `speech/test_contact_family_call_backend.py` 和 `speech/test_contact_family_dial_authorization.py`。所有业务逻辑和测试断言保留原样。
+目录为 `speech/scenarios/contact_family/`，已导入 11 个 Python 文件、`run_g1_demo.sh` 和 `run_mock_call_server.sh`。两份原测试位于 `speech/test_contact_family_call_backend.py` 和 `speech/test_contact_family_dial_authorization.py`；本轮补入根目录 `scripts/g1_call_owner_once.sh` 和 `scripts/g1_phone_dial.py`。所有业务逻辑和测试断言保留原样。
 
 | 入口 | 源码实际行为 |
 | --- | --- |
@@ -55,9 +55,33 @@ G1录音与ASR
 
 真实准备和拨号会创建 `runs/contact-family-phone/` 下的输出目录。代码解析 client 的 JSON 合同输出，也兼容旧 `key=value` 文本。`ok` 或子进程退出码为 0 仅说明请求流程完成；主入口对 `operation_state=accepted` 播报正在联系，不能将其解释为电话已经接通。
 
-根目录两个电话脚本尚未收到，本轮无法核实其 HTTP、ADB、Android 服务交互和实际拨号实现，也未验证 `--preflight` 或 `--dry-run` 的内部行为。
+根目录两个电话脚本已收到。独立 Android client 使用 HTTP，不直接调用 ADB；Shell 引用的 `scripts/g1_contact_family_call.py` 尚未收到。源码事实和静态接线问题见下节，真实 HTTP 和手机端实现均未验证。
 
 `real_phone_backend.py` 另保留一个 `RealPhoneBackend` wrapper，调用 `g1_call_owner_once.sh` 的 `--dry-run`、`--preflight` 或无参数入口。当前主语音入口没有导入或使用这个 wrapper，不能把它与当前 `ContactCallBackend` 主链混为一条已验证流程。
+
+## 根目录电话脚本与接线问题
+
+`scripts/g1_call_owner_once.sh` 固定使用 `speech/venv/bin/python`，启动尚未收到的 `scripts/g1_contact_family_call.py`。它保留原机器的私网手机 URL 和绝对 token 文件路径，可用 `G1_PHONE_URL`、`G1_PHONE_TOKEN_FILE`、`G1_PHONE_RUNS_DIR` 分别覆盖手机 URL、token 文件和输出父目录；源码没有包含 token 值。
+
+Shell 接受 `--dry-run` 或 `--preflight` 并转发给编排器，无参数时直接传入 `--confirm-g1-contact-family-call` 和 token 文件路径。Shell 本身没有交互确认；旧 `RealPhoneBackend` 中“脚本自身仍会要求现场确认”的注释不能由这份 Shell 证实，下层是否另有确认需收到编排器后核对。Shell 只创建输出父目录，不提前创建本次运行的输出子目录。
+
+`scripts/g1_phone_dial.py` 只依赖 Python 标准库，CLI 必须从三个互斥动作中选一个：
+
+| 动作 | 源码行为 |
+| --- | --- |
+| `--dry-run` | 校验 URL、生成 `planned` 结果并写入输出目录，不请求手机 |
+| `--preflight` | 请求 `GET /health`，校验 HTTP 200、schema、`kind=health`、已配置和权限就绪；不传 token、不请求拨号 |
+| `--confirm-g1-phone-dial` | 要求至少 32 字符且无空白的 token，向 `/dial` 发送带 Bearer token 的 POST，固定 `contact_id=owner` |
+
+URL 校验要求 `http`、私有或回环 IP 字面量和显式端口，拒绝凭据、额外路径、query 和 fragment。这是初始 URL 的代码检查，未验证 HTTP 服务、响应或手机端行为。请求超时设为 3 秒；拨号结果要求 HTTP 202 和匹配的 `accepted` 合同，不表示实际接通。
+
+独立 client 使用 `g1_android_phone_dial_v1` schema，后端示例中的编排器合同为 `g1_contact_family_call_v1`；当前后端解析器提取字段但不强制校验 schema，不能将两者视为已经核对完成的同一个协议。
+
+静态核对发现输出目录约定冲突：`ContactCallBackend._new_output_dir()` 先创建本次输出目录，随后 client 的 `_write_result()` 再使用 `mkdir(..., exist_ok=False)` 创建同一路径。两份当前源码直接接线时会发生 `FileExistsError`；client 的 `main()` 只捕获 `DialError`，不处理该异常。
+
+client 在 HTTP 操作后写结果，因此真实预检可能已经请求 `/health` 才写盘失败；单独调用真实拨号路径时，也可能已发送 `/dial` 请求再报错。正常语音入口会先准备，准备失败会停止后续拨号。上述冲突由源码静态确认，本轮没有请求手机或进行端到端复现，也没有修复原逻辑。
+
+失败回执还有限制：client 的 `DialError` 路径以 `arguments.confirmed` 填写 `external_dial_requested`，即使 URL 校验失败、尚未发送 HTTP，也可能为 `True`；`main()` 的错误 stdout 又不包含这个字段。失败退出或该字段均不能单独证明请求是否实际发出。原有后端测试 mock 整个 client 调用，未覆盖这些接线问题。
 
 ## 保留的网页模拟通话路径
 
@@ -91,7 +115,7 @@ SQLite 连接使用普通可写连接。数据库文件不存在且父目录存�
 
 ## 尚待补齐与验证
 
-- 仓库根目录 `scripts/g1_phone_dial.py`、`scripts/g1_call_owner_once.sh`。
+- 仓库根目录 `scripts/g1_contact_family_call.py` 及其依赖；Shell 还固定使用本机 `speech/venv/bin/python`。
 - 老人基表、家属联系人表、通话日志表的建表脚本和匿名演示数据。
 - 用户确认各入口的现用、比赛或归档定位，以及网页模拟通话路径是否计划重新接入。
 - 真实 SQLite 业务链、网页音频交换、云 ASR/TTS、G1 音频、Android 预检、拨号请求与实机接通情况。
@@ -111,11 +135,13 @@ SQLite 连接使用普通可写连接。数据库文件不存在且父目录存�
 
 | 原测试文件 | 实际结果 | 覆盖内容 |
 | --- | --- | --- |
-| `test_contact_family_call_backend.py` | 7 项：6 通过、1 错误、0 断言失败、0 跳过 | 非法模式、JSON/旧文本解析、`dry_run` 准备/拨号、`real` 底层 client 参数转发 |
+| `test_contact_family_call_backend.py` | 7 项全部通过 | 非法模式、JSON/旧文本解析、`dry_run` 准备/拨号、`real` 底层 client 参数转发 |
 | `test_contact_family_dial_authorization.py` | 11 项全部通过 | 精确授权、空格标点归一化、泛化肯定/扩展句拒绝、取消和授权状态转换 |
 
-合计 18 项实际执行，17 通过、1 错误，合并执行退出码为 1。错误项为 `ContactCallBackendTest.test_dry_run_prepare`：`_run_script()` 会先检查 `scripts/g1_call_owner_once.sh` 是否存在，当前缺少该文件而抛出 `CallBackendError`。原测试只 mock 后续的 `subprocess.run`，所以尚未运行到模拟子进程结果的断言。这是当前依赖缺失，不能记作通过；本轮没有补占位脚本或修改测试。
+最新合计 18 项实际执行，18 通过、0 失败、0 错误、0 跳过，合并执行退出码为 0。前批曾因缺少 `scripts/g1_call_owner_once.sh`，使 `test_dry_run_prepare` 抛出 `CallBackendError`；本轮导入用户提供的真实源码后，文件存在性条件已满足，后续子进程仍由原测试 mock。本轮没有执行 Shell 或缺失的编排器，也没有修改测试断言或业务代码。
 
 两个 `real` 用例 mock 整个 `_run_phone_client`，只验证参数转发与结果处理，不读取 token、不访问手机。授权状态测试手动放入合成联系人并设置初始状态，电话字段为 `placeholder`，没有查询真实联系人。受控执行未尝试数据库连接、业务网络或子进程调用。
 
 这些用例没有覆盖 `safe_stub`、owner 联系人绑定、语音入口的“绑定—准备—授权—拨号”整体接线，或真实 client 的命令、token、异常和超时行为。后端类自身仍不验证会话授权，不能由这些单元测试推定整条电话链已经完成验收。
+
+本轮新增脚本通过 Python 3.10 语法解析或 `bash -n`，与附件内容一致，仅统一文本换行，Shell 保留可执行权限。Android client 的定义导入成功，未调用业务函数；没有运行电话脚本的入口、读取 token、请求手机或创建老人数据库。

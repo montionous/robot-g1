@@ -22,12 +22,13 @@
 - 社交展示验收：`speech/test_social_activity_showcase.py`，包含 16 项原有 unittest，保持断言原样。
 - 联系家属：`speech/scenarios/contact_family/` 下 11 个 Python 文件，包含语音/文字入口、电话后端、联系人逻辑与数据库访问、网页模拟通话服务和 `test_db.py`。
 - 联系家属验收：`speech/test_contact_family_call_backend.py`、`speech/test_contact_family_dial_authorization.py`，分别包含 7 项后端测试和 11 项拨号授权测试，保持原有 mock 和断言。
+- 项目根电话脚本：`scripts/g1_call_owner_once.sh`、`scripts/g1_phone_dial.py`，分别为 Shell 编排入口和 Android HTTP 拨号 client。前者引用的 `scripts/g1_contact_family_call.py` 尚未收到。
 - 语音服务启动及会话配置脚本：`speech/run_server.sh`、`speech/companion_recording_env.sh`。
 - 四场景启动脚本：下表中的七个脚本。
 - 原语音文档及依赖：`speech/README.md`、`speech/TEAM_USAGE.md`、`speech/requirements.txt`。
 - 原项目规则快照：`docs/upstream-project-rules.md`。
 
-合计保留 115 个原项目文件，其中 114 个位于 `speech/`，包含 99 个 Python 文件和 9 个 Shell 脚本。第二批再次提供的 `speech/speech/service.py` 与首批内容一致，没有覆盖出不同版本。
+合计保留 117 个原项目文件，其中 114 个位于 `speech/`，包含 100 个 Python 文件和 10 个 Shell 脚本。第二批再次提供的 `speech/speech/service.py` 与首批内容一致，没有覆盖出不同版本。
 
 ## 现用场景与废弃场景
 
@@ -73,7 +74,7 @@
 
 社交活动版本、内存演练及数据库脚本见 [社交活动模块说明](SOCIAL_ACTIVITY_SUPPORT.md)。三个 `video_baseline` 文件保留原状，其中视频语音入口仍导入当前 `showcase_controller` 和 `showcase_intent`，未把这些文件认定为独立冻结基线或另一个现用场景。
 
-联系家属入口、联系人绑定与拨号授权见 [联系家属模块说明](CONTACT_FAMILY.md)。当前语音入口只开放 `safe_stub` 和 `real`；后端类还保留会调用外部脚本的 `dry_run`，本轮没有执行。旧网页模拟通话函数仍在源码中，当前主链不调用，不能以启动网页服务推定已接入。
+联系家属入口、联系人绑定与拨号授权见 [联系家属模块说明](CONTACT_FAMILY.md)。当前语音入口只开放 `safe_stub` 和 `real`；后端类还保留会调用外部脚本的 `dry_run`，本轮没有执行外部脚本。旧网页模拟通话函数仍在源码中，当前主链不调用，不能以启动网页服务推定已接入。
 
 ## 语音调用路径
 
@@ -85,7 +86,7 @@
 
 ## 还缺少的直接依赖
 
-- 联系家属的根目录 `scripts/g1_phone_dial.py`、`scripts/g1_call_owner_once.sh` 和依赖尚未收到。两份原有后端/授权测试已导入，后端准备测试被缺失的 Shell 脚本阻断，未验证真实电话链。
+- 联系家属的 Shell 入口和 Android client 已收到，但 `scripts/g1_contact_family_call.py` 尚未收到；Shell 还固定依赖原机器的 `speech/venv/bin/python`。原有后端/授权测试现为 18 项全部通过，实际编排和电话链仍未验证。
 - 当前活动 SQLite 未初始化或填充；内存演练与已收到的展示测试不替代真实 SQL、报名记录、工作人员通知及日程刷新验收。
 - 娱乐陪伴的实际媒体。当前仓库的音乐、新闻、戏曲目录均为空；展示入口检查至少两首音乐、一条新闻、一段戏曲。展示 unittest 已收到，打断等其他验收脚本仍未上传。
 - 动作执行器：项目根 `scripts/g1_elder_companion_motion_executor.py`、`scripts/g1_elder_companion_custom_action_executor.py` 及其依赖。动作客户端已收到，但默认引用原机器的 `tv` Python 环境和 `enp3s0`；源码可通过 `G1_ACTION_PYTHON`、`G1_ACTION_INTERFACE` 覆盖，尚未验证实机兼容。
@@ -111,6 +112,7 @@
 - 社交展示脚本先刷新活动日程；确认目标数据库及写入行为后再执行。
 - 社交 `seed_demo_activities.py` 会清空四张活动相关表；`refresh_activity_schedule.py` 虽不删除历史场次，也会更新已匹配场次的人数、容量、截止时间和状态等字段。本轮均未执行。
 - 联系家属启动脚本固定检查 `http://127.0.0.1:8780/health`。
+- 根目录 `scripts/g1_call_owner_once.sh` 默认使用配对手机的私网 URL、原机器绝对 token 路径和 `speech/venv/bin/python`。`G1_PHONE_URL`、`G1_PHONE_TOKEN_FILE`、`G1_PHONE_RUNS_DIR` 分别覆盖 URL、token 路径和输出父目录，解释器仍固定。无参数执行会直接向编排器传确认选项，Shell 本身不进行交互确认。
 - `playback.py` 的旧播放器默认路径为 `/home/unitree/medication_robot/bin/g1_play_wav`，可用 `G1_WAV_PLAYER` 覆盖。
 - 麦克风模块用 `192.168.123.164` 作为网卡选择目标，接收 `239.168.123.161:5555` 的音频多播；与上游规则中的设备地址不完全一致，保留原值，等待现用机器验证。
 - 原 README 同时包含早期 Windows、旧服药兼容接口和情绪联调内容，不能作为当前四场景的完整运行说明。
@@ -119,7 +121,7 @@
 
 ## 验证状态
 
-当前累计 99 个 Python 文件、9 个 Shell 脚本，执行导入内容一致性检查、Python AST 语法解析、`bash -n` 和三份 JSON 检查。重复的 `service.py` 和照护咨询重复源码附件单独核对一致。没有执行会话配置、刷新数据库、监听麦克风或启动播放。
+当前累计 100 个 Python 文件、10 个 Shell 脚本，执行导入内容一致性检查、Python AST 语法解析、`bash -n` 和三份 JSON 检查。重复的 `service.py` 和照护咨询重复源码附件单独核对一致。没有执行会话配置、刷新数据库、监听麦克风或启动播放。
 
 本批还在 Python 3.12.14 下验证了 9 个模块导入：四个新共享模块，以及 `care_controller`、`g1_voice_demo`、`care_api`、`text_demo`、`test_showcase_offline_chain`。因当前机器缺少 `requests`，仅向 `/tmp/g1-care-import-deps-batch4` 安装 `requests==2.34.2` 及其依赖用于检查；这不是原机器人环境的版本声明，也未修改 `requirements.txt`。检查拦截数据库、出站连接和子进程调用；请求库的本地 IPv6 能力探测被拦截，业务模块未尝试这些操作。未调用任何场景函数、初始化函数或测试 `main()`。
 
@@ -137,9 +139,11 @@
 
 联系家属的 10 个模块在拦截数据库、业务网络和子进程调用的条件下真实导入通过，三个演示入口的 `--help` 正常退出。请求库的本地 IPv6 探测单独拦截；没有业务调用尝试。`mock_call_server` 导入创建了忽略目录 `speech/runtime/mock_calls/`，未启动监听。`test_db.py` 顶层会查库并打印完整老人/联系人，因此只做语法和源码一致性检查，不导入或执行，也未使用全仓自动测试收集。没有创建老人数据库。
 
-本轮在 Python 3.12.14 下明确选择两份联系家属原有 unittest，18 项实际执行：17 项通过、0 断言失败、1 错误、0 跳过，合并执行退出码为 1。其中拨号授权套件 11 项全部通过；后端套件 7 项中 6 项通过，`test_dry_run_prepare` 在检查根目录 `scripts/g1_call_owner_once.sh` 时因文件缺失抛出 `CallBackendError`。该测试只 mock 了后续 `subprocess.run`，没有 mock 文件存在性检查。本轮没有补占位脚本、修改测试或变更业务逻辑。
+前批在 Python 3.12.14 下明确选择两份联系家属原有 unittest，18 项实际执行：17 项通过、0 断言失败、1 错误、0 跳过，合并执行退出码为 1。其中 `test_dry_run_prepare` 在检查根目录 `scripts/g1_call_owner_once.sh` 时因文件缺失抛出 `CallBackendError`。本批导入用户提供的真实 Shell 源码后，重跑同样两份原套件：18 项全部通过、0 失败、0 错误、0 跳过，退出码为 0。文件存在性条件已满足，但 `subprocess.run` 仍由原测试 mock，并未执行 Shell 或缺失的编排器。没有修改测试或业务逻辑。
 
-两个真实模式后端用例使用原有 `_run_phone_client` mock；授权状态用例使用原有合成联系人，电话字段为占位文本。审计未发现数据库、业务网络或子进程调用尝试，未读取电话 token 或创建老人数据库。测试尚未覆盖 `safe_stub`、owner 绑定和语音入口整条授权调用链，也不验证缺失的 Android client。
+两个真实模式后端用例使用原有 `_run_phone_client` mock；授权状态用例使用原有合成联系人，电话字段为占位文本。审计未发现数据库、业务网络或子进程调用尝试，未读取电话 token 或创建老人数据库。测试尚未覆盖 `safe_stub`、owner 绑定、语音入口整条授权调用链和 Android client 的实际行为。
+
+新收到的 Android client 只导入定义，未调用 `run()`、`main()` 或 HTTP/写盘函数；模块导入通过，没有数据库、网络或子进程调用。静态核对发现真实后端预先创建输出目录，而 client 的 `_write_result()` 要求新建同一路径，存在 `FileExistsError` 冲突。HTTP 操作先于结果写盘，故非零退出不证明未发拨号请求。该冲突和错误回执字段的局限已记录在联系家属说明，本轮未进行端到端复现或修改。
 
 HTTP 启动、云 ASR/TTS、数据库业务行为、真实拨号及 G1 录音/播放均未验证。四个场景主体已收到，但仍缺少公共依赖、相关服务、PCM bridge 和运行配置，不能认定项目可独立运行。
 
