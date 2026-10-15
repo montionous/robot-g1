@@ -48,6 +48,7 @@ nohup.out
 /speech/runtime/
 /speech/data/
 /speech/video_robot_audio_*/
+/runs/
 
 # Build products; keep source and build configuration separately
 /build/
