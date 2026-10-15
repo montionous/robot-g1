@@ -1,0 +1,582 @@
+[
+  {
+    "id": "mobility_01",
+    "domain": "mobility",
+    "title": "活动后轻度肌肉酸胀",
+    "keywords": [
+      "酸",
+      "酸痛",
+      "肌肉酸",
+      "活动多",
+      "走多了",
+      "累着了"
+    ],
+    "guidance": "若只是活动后轻度酸胀且没有明显外伤、肿胀或功能障碍，可先减少负荷、适当休息，并在舒适范围内轻柔活动。",
+    "followup": "可以询问不适是什么时候开始的，以及是否影响正常活动。",
+    "escalate_if": "持续数天、逐渐加重、明显影响活动，或伴随明显肿胀、发红、无力时应让工作人员进一步了解。",
+    "avoid": "不要要求老人忍痛锻炼，不推荐自行改变药物。",
+    "source": "MedlinePlus Muscle aches"
+  },
+  {
+    "id": "mobility_02",
+    "domain": "mobility",
+    "title": "久坐或休息后的轻柔活动",
+    "keywords": [
+      "僵",
+      "僵硬",
+      "坐久",
+      "躺久",
+      "活动不开",
+      "不灵活"
+    ],
+    "guidance": "长时间保持同一姿势后，可在安全和舒适范围内缓慢活动相关关节和肌肉，避免突然或剧烈动作。",
+    "followup": "可以询问轻柔活动后是否有所缓解。",
+    "escalate_if": "突然出现明显活动障碍、无法站立或一侧肢体无力时不能继续普通护理建议。",
+    "avoid": "不要进行强力牵拉、扳动或疼痛范围内的动作。",
+    "source": "MedlinePlus Muscle aches"
+  },
+  {
+    "id": "mobility_03",
+    "domain": "mobility",
+    "title": "肢体不适时的跌倒预防",
+    "keywords": [
+      "腿疼",
+      "膝疼",
+      "脚疼",
+      "走路",
+      "站不稳",
+      "腿软"
+    ],
+    "guidance": "肢体不适影响站立或行走时，应优先保证环境安全，避免独自快速行走，并使用身边稳定支撑。",
+    "followup": "可以询问目前走路是否比平时困难。",
+    "escalate_if": "出现明显失衡、反复跌倒、突然不能站立或不能正常走路时应升级处理。",
+    "avoid": "不要鼓励老人独自尝试高风险活动。",
+    "source": "CDC Older Adult Fall Prevention"
+  },
+  {
+    "id": "mobility_04",
+    "domain": "mobility",
+    "title": "活动量逐步恢复",
+    "keywords": [
+      "运动",
+      "锻炼",
+      "活动",
+      "恢复",
+      "散步"
+    ],
+    "guidance": "轻度不适缓解后，活动量宜逐步恢复，避免突然增加运动强度。",
+    "followup": "可以询问近期是否突然增加了走路或锻炼量。",
+    "escalate_if": "活动后症状持续恶化或影响日常功能时应让工作人员评估。",
+    "avoid": "疼痛明显时不要继续高强度运动。",
+    "source": "MedlinePlus Muscle aches"
+  },
+  {
+    "id": "mobility_05",
+    "domain": "mobility",
+    "title": "持续肌肉关节不适",
+    "keywords": [
+      "好几天",
+      "一直疼",
+      "反复疼",
+      "越来越疼",
+      "越来越严重"
+    ],
+    "guidance": "持续或反复的肌肉关节不适不适合仅靠机器人持续给出居家护理建议，应安排工作人员进一步了解。",
+    "followup": "重点了解持续时间、变化趋势以及是否影响日常活动。",
+    "escalate_if": "持续、加重、功能受限均应升级工作人员关注。",
+    "avoid": "不要根据疼痛位置自行推断具体疾病。",
+    "source": "MedlinePlus Muscle aches"
+  },
+  {
+    "id": "dizziness_01",
+    "domain": "dizziness",
+    "title": "头晕时先坐下",
+    "keywords": [
+      "头晕",
+      "晕",
+      "眼前发黑",
+      "天旋地转",
+      "眩晕"
+    ],
+    "guidance": "出现头晕时应优先坐下或保持稳定姿势，避免继续行走，以降低跌倒风险。",
+    "followup": "可以询问头晕是否仍然持续，以及是否影响站立。",
+    "escalate_if": "头晕伴随意识异常、说话异常、明显无力、胸痛或呼吸困难时立即进入紧急流程。",
+    "avoid": "不要让老人头晕时独自行走。",
+    "source": "MedlinePlus Dizziness; CDC Fall Prevention"
+  },
+  {
+    "id": "dizziness_02",
+    "domain": "dizziness",
+    "title": "缓慢改变体位",
+    "keywords": [
+      "起床晕",
+      "站起来晕",
+      "起来晕",
+      "起身",
+      "体位"
+    ],
+    "guidance": "从躺卧或坐位起身时应放慢速度，可先坐稳片刻再站起，并确保附近有稳定支撑。",
+    "followup": "可以询问头晕是否主要发生在起身时。",
+    "escalate_if": "反复发生或明显影响站立行走时应让工作人员进一步评估。",
+    "avoid": "不要快速起身或突然改变体位。",
+    "source": "MedlinePlus Dizziness"
+  },
+  {
+    "id": "dizziness_03",
+    "domain": "dizziness",
+    "title": "头晕期间避免危险活动",
+    "keywords": [
+      "走路",
+      "楼梯",
+      "洗澡",
+      "出去",
+      "活动"
+    ],
+    "guidance": "头晕未缓解时，应暂时避免独自上下楼梯或进行容易跌倒的活动。",
+    "followup": "可以询问身边是否有人能够协助。",
+    "escalate_if": "明显失去平衡或无法安全行走时应请求工作人员协助。",
+    "avoid": "不要建议老人自行测试平衡能力。",
+    "source": "CDC Older Adult Fall Prevention; MedlinePlus"
+  },
+  {
+    "id": "dizziness_04",
+    "domain": "dizziness",
+    "title": "反复头晕需要进一步了解",
+    "keywords": [
+      "经常晕",
+      "反复晕",
+      "一直晕",
+      "这几天晕"
+    ],
+    "guidance": "老年人反复出现头晕时，应由工作人员或医护人员进一步了解情况，而不是仅持续观察。",
+    "followup": "可以记录发生频率以及与起身、进食或活动是否有关。",
+    "escalate_if": "反复、持续或影响行走时升级工作人员关注。",
+    "avoid": "不要自行判断头晕原因。",
+    "source": "MedlinePlus Dizziness"
+  },
+  {
+    "id": "dizziness_05",
+    "domain": "dizziness",
+    "title": "药物相关头晕需专业核对",
+    "keywords": [
+      "吃药后晕",
+      "药后",
+      "换药",
+      "药物",
+      "血压药"
+    ],
+    "guidance": "部分药物可能与头晕或嗜睡有关，出现相关情况应记录并请医护人员核对药物，而不是自行停药。",
+    "followup": "可以询问近期是否出现用药变化，但不要指导老人改变用药。",
+    "escalate_if": "明显头晕或跌倒风险增加时应让工作人员进一步处理。",
+    "avoid": "绝不能建议老人自行停药、减量或换药。",
+    "source": "CDC Older Adult Fall Prevention"
+  },
+  {
+    "id": "sleep_01",
+    "domain": "sleep",
+    "title": "规律睡眠时间",
+    "keywords": [
+      "睡不好",
+      "睡不着",
+      "失眠",
+      "入睡",
+      "晚上睡"
+    ],
+    "guidance": "可以尽量保持每天相近的入睡和起床时间，帮助维持较稳定的睡眠节律。",
+    "followup": "可以询问主要是入睡困难还是夜间容易醒。",
+    "escalate_if": "睡眠问题长期持续并明显影响白天状态时，应进一步向工作人员或医护人员反映。",
+    "avoid": "不要自行推荐安眠药或助眠补充剂。",
+    "source": "NIH NIA Sleep and Older Adults"
+  },
+  {
+    "id": "sleep_02",
+    "domain": "sleep",
+    "title": "睡前放松习惯",
+    "keywords": [
+      "睡前",
+      "难入睡",
+      "睡不着",
+      "入睡困难"
+    ],
+    "guidance": "睡前可以建立安静、固定的放松习惯，例如听舒缓音乐或进行轻松的睡前准备。",
+    "followup": "可以询问老人睡前通常会做什么。",
+    "escalate_if": "长期无法入睡或白天持续困倦时应进一步评估。",
+    "avoid": "不要承诺某一种方法一定能改善失眠。",
+    "source": "NIH NIA Sleep and Older Adults"
+  },
+  {
+    "id": "sleep_03",
+    "domain": "sleep",
+    "title": "避免过晚小睡",
+    "keywords": [
+      "午睡",
+      "白天睡",
+      "下午睡",
+      "晚上不困"
+    ],
+    "guidance": "如果晚上入睡困难，可注意避免在下午较晚或傍晚长时间小睡。",
+    "followup": "可以询问白天是否睡得较多。",
+    "escalate_if": "昼夜节律明显紊乱并持续存在时应让工作人员了解。",
+    "avoid": "不要要求老人强行保持清醒到非常疲劳。",
+    "source": "NIH NIA Sleep and Older Adults"
+  },
+  {
+    "id": "sleep_04",
+    "domain": "sleep",
+    "title": "晚间咖啡因与大餐",
+    "keywords": [
+      "咖啡",
+      "茶",
+      "晚上吃",
+      "夜宵"
+    ],
+    "guidance": "晚间应尽量避免咖啡因以及临睡前的大量进食，以免影响睡眠。",
+    "followup": "可以询问晚间是否常喝浓茶、咖啡或吃较多食物。",
+    "escalate_if": "长期睡眠问题仍需专业人员进一步了解原因。",
+    "avoid": "不要把睡眠问题简单归因于单一饮食习惯。",
+    "source": "NIH NIA Sleep and Older Adults"
+  },
+  {
+    "id": "sleep_05",
+    "domain": "sleep",
+    "title": "睡眠环境与屏幕",
+    "keywords": [
+      "手机",
+      "电视",
+      "房间",
+      "夜里醒",
+      "睡眠环境"
+    ],
+    "guidance": "睡眠环境宜保持安静和舒适，并尽量减少临睡前长时间看手机、电视等屏幕。",
+    "followup": "可以询问夜间醒来后是否会长时间看手机或电视。",
+    "escalate_if": "持续睡眠不足并影响白天安全或增加跌倒风险时应进一步关注。",
+    "avoid": "不要让老人自行服用助眠药。",
+    "source": "NIH NIA Sleep and Older Adults"
+  },
+  {
+    "id": "appetite_01",
+    "domain": "appetite",
+    "title": "少量多餐",
+    "keywords": [
+      "没胃口",
+      "不想吃",
+      "吃不下",
+      "吃一点就饱"
+    ],
+    "guidance": "胃口较差但能够正常进食时，可以尝试少量多餐，并优先选择营养密度较高、老人容易接受的食物。",
+    "followup": "可以询问这种食欲变化持续了多久。",
+    "escalate_if": "持续吃不下、明显体重下降或伴随其他明显不适时应进一步评估。",
+    "avoid": "不要给出固定热量目标或特殊治疗饮食。",
+    "source": "NIH NIA Maintaining a Healthy Weight"
+  },
+  {
+    "id": "appetite_02",
+    "domain": "appetite",
+    "title": "保持适当饮水",
+    "keywords": [
+      "喝水少",
+      "口干",
+      "没胃口",
+      "吃不下"
+    ],
+    "guidance": "在没有医护人员限制饮水的前提下，应注意日常适量补充水分。",
+    "followup": "可以询问今天是否正常喝水。",
+    "escalate_if": "明显不能进食饮水或出现持续呕吐等情况应尽快让工作人员处理。",
+    "avoid": "有明确限水要求时不能擅自增加饮水量。",
+    "source": "NIH NIA Healthy Eating"
+  },
+  {
+    "id": "appetite_03",
+    "domain": "appetite",
+    "title": "改善食物吸引力",
+    "keywords": [
+      "没食欲",
+      "东西没味道",
+      "不香",
+      "不想吃"
+    ],
+    "guidance": "食欲下降时，可以在符合老人饮食要求的前提下，通过增加食物种类、颜色和口味变化提高进食兴趣。",
+    "followup": "可以询问老人最近是否有比较愿意吃的食物。",
+    "escalate_if": "食欲长期明显下降时需要进一步了解原因。",
+    "avoid": "不要建议通过大量盐或糖刺激食欲。",
+    "source": "NIH NIA Overcoming Roadblocks to Healthy Eating"
+  },
+  {
+    "id": "appetite_04",
+    "domain": "appetite",
+    "title": "进食困难与吞咽问题",
+    "keywords": [
+      "咽不下",
+      "吞咽",
+      "呛",
+      "嚼不动",
+      "吃东西困难"
+    ],
+    "guidance": "出现明显咀嚼或吞咽困难时，不应只按普通食欲下降处理，应请工作人员进一步了解。",
+    "followup": "可以询问是没有胃口，还是实际存在咀嚼或吞咽困难。",
+    "escalate_if": "反复呛咳、明显吞咽困难或无法正常进食时升级处理。",
+    "avoid": "不要自行改变食物质地作为医疗处理方案。",
+    "source": "NIH NIA Healthy Eating"
+  },
+  {
+    "id": "appetite_05",
+    "domain": "appetite",
+    "title": "持续食欲下降",
+    "keywords": [
+      "好几天没胃口",
+      "一直吃不下",
+      "越来越瘦",
+      "体重下降"
+    ],
+    "guidance": "持续的食欲下降或非主动体重下降需要由工作人员或医护人员进一步了解。",
+    "followup": "可以记录持续时间以及近期进食量变化。",
+    "escalate_if": "持续、明显体重下降或无法维持正常进食时应升级。",
+    "avoid": "不要自行判断为正常衰老。",
+    "source": "NIH NIA Maintaining a Healthy Weight; MedlinePlus"
+  },
+  {
+    "id": "bowel_01",
+    "domain": "bowel",
+    "title": "排便与饮水",
+    "keywords": [
+      "便秘",
+      "大便干",
+      "排便困难"
+    ],
+    "guidance": "在没有医护人员限制饮水的情况下，保持适当饮水有助于日常排便护理。",
+    "followup": "可以询问最近一次正常排便是什么时候。",
+    "escalate_if": "数日未排便并伴腹痛、腹胀、恶心呕吐或便血时应进一步处理。",
+    "avoid": "不要自动推荐泻药。",
+    "source": "MedlinePlus Constipation self-care"
+  },
+  {
+    "id": "bowel_02",
+    "domain": "bowel",
+    "title": "膳食纤维",
+    "keywords": [
+      "便秘",
+      "大便干",
+      "蔬菜少",
+      "水果少"
+    ],
+    "guidance": "在日常饮食允许的情况下，可以注意摄入蔬菜、水果和其他含膳食纤维的食物。",
+    "followup": "可以询问最近蔬菜水果和饮水情况。",
+    "escalate_if": "排便问题持续或伴明显腹部不适时应让工作人员了解。",
+    "avoid": "有特殊饮食限制时应遵循医护人员安排。",
+    "source": "MedlinePlus Constipation self-care"
+  },
+  {
+    "id": "bowel_03",
+    "domain": "bowel",
+    "title": "适度日常活动",
+    "keywords": [
+      "便秘",
+      "不活动",
+      "躺着",
+      "坐着"
+    ],
+    "guidance": "身体状况允许时，适度的日常活动有助于维持正常生活节律和排便习惯。",
+    "followup": "可以询问近期活动量是否明显减少。",
+    "escalate_if": "如果老人本身走路不稳，应先考虑跌倒安全而不是鼓励独自活动。",
+    "avoid": "不要为了排便强迫老人运动。",
+    "source": "MedlinePlus Constipation self-care"
+  },
+  {
+    "id": "bowel_04",
+    "domain": "bowel",
+    "title": "排便危险表现",
+    "keywords": [
+      "腹痛",
+      "肚子疼",
+      "腹胀",
+      "呕吐",
+      "便血",
+      "血便"
+    ],
+    "guidance": "便秘同时伴明显腹痛、腹胀、恶心呕吐或便血时，不宜继续仅做普通生活护理。",
+    "followup": "应优先确认是否存在这些伴随表现。",
+    "escalate_if": "存在上述伴随症状时应让工作人员或医护人员进一步处理。",
+    "avoid": "不要继续反复建议饮水或纤维而忽视异常表现。",
+    "source": "MedlinePlus Constipation self-care"
+  },
+  {
+    "id": "bowel_05",
+    "domain": "bowel",
+    "title": "避免自行长期使用泻药",
+    "keywords": [
+      "泻药",
+      "通便药",
+      "便秘药",
+      "吃什么药"
+    ],
+    "guidance": "涉及通便药或其他药物时，应由医护人员结合老人情况决定，不由机器人推荐具体药物或剂量。",
+    "followup": "可以询问是否需要帮忙记录情况并向工作人员反映。",
+    "escalate_if": "反复依赖药物或长期便秘需要进一步评估。",
+    "avoid": "不推荐具体泻药，不调整原有药物。",
+    "source": "MedlinePlus Constipation self-care"
+  },
+  {
+    "id": "fatigue_01",
+    "domain": "fatigue",
+    "title": "疲劳时调整活动节奏",
+    "keywords": [
+      "累",
+      "乏力",
+      "没精神",
+      "疲劳"
+    ],
+    "guidance": "轻度疲劳时可以先休息并适当降低活动强度，避免一次安排过多活动。",
+    "followup": "可以询问疲劳是今天新出现，还是已经持续一段时间。",
+    "escalate_if": "持续、加重或明显影响日常活动时应进一步了解。",
+    "avoid": "不要简单把持续乏力解释为年龄原因。",
+    "source": "General geriatric supportive care"
+  },
+  {
+    "id": "fatigue_02",
+    "domain": "fatigue",
+    "title": "疲劳与睡眠情况",
+    "keywords": [
+      "白天困",
+      "睡不好",
+      "累",
+      "没精神"
+    ],
+    "guidance": "睡眠不足可能影响白天精神状态，可以了解近期睡眠时间和夜间醒来的情况。",
+    "followup": "一次只需询问最主要的睡眠问题。",
+    "escalate_if": "长期睡眠不足并明显影响白天活动时应进一步评估。",
+    "avoid": "不要直接使用助眠药物解决疲劳。",
+    "source": "NIH NIA Sleep and Older Adults"
+  },
+  {
+    "id": "fatigue_03",
+    "domain": "fatigue",
+    "title": "疲劳与进食饮水",
+    "keywords": [
+      "没吃饭",
+      "吃得少",
+      "喝水少",
+      "没力气"
+    ],
+    "guidance": "轻度疲劳时可以了解当天是否正常进食和饮水，并在符合饮食要求的情况下保持规律进食。",
+    "followup": "可以询问今天是否正常吃饭和喝水。",
+    "escalate_if": "持续无法进食饮水或明显无力时应升级工作人员关注。",
+    "avoid": "不要擅自补充药物或保健品。",
+    "source": "NIH NIA Healthy Eating"
+  },
+  {
+    "id": "fatigue_04",
+    "domain": "fatigue",
+    "title": "持续乏力",
+    "keywords": [
+      "一直累",
+      "好几天没精神",
+      "越来越没力气",
+      "持续乏力"
+    ],
+    "guidance": "持续或逐渐加重的乏力不适合仅依赖机器人生活建议，应让工作人员进一步了解。",
+    "followup": "重点记录持续时间和对日常活动的影响。",
+    "escalate_if": "持续、加重或功能明显下降时升级。",
+    "avoid": "不要自行判断病因。",
+    "source": "General geriatric supportive care"
+  },
+  {
+    "id": "fatigue_05",
+    "domain": "fatigue",
+    "title": "突然明显无力",
+    "keywords": [
+      "突然没力气",
+      "突然无力",
+      "一边没力",
+      "站不起来"
+    ],
+    "guidance": "突然出现明显无力需要先进行安全风险判断，而不是按普通疲劳处理。",
+    "followup": "优先判断是否伴随一侧肢体无力、言语异常或无法站立。",
+    "escalate_if": "命中紧急危险表现时立即进入紧急协助流程。",
+    "avoid": "不要让老人自行尝试走动验证。",
+    "source": "Local red-flag safety policy"
+  },
+  {
+    "id": "general_01",
+    "domain": "general_care",
+    "title": "关注症状变化趋势",
+    "keywords": [
+      "不舒服",
+      "难受",
+      "怎么办"
+    ],
+    "guidance": "基础护理沟通应重点了解症状何时开始、是否持续或加重，以及是否影响日常活动。",
+    "followup": "一次优先询问一个最有价值的问题。",
+    "escalate_if": "持续、加重或明显影响功能时应升级工作人员关注。",
+    "avoid": "不要急于给出疾病名称。",
+    "source": "Care consultation safety policy"
+  },
+  {
+    "id": "general_02",
+    "domain": "general_care",
+    "title": "老年人跌倒环境安全",
+    "keywords": [
+      "走路",
+      "站",
+      "头晕",
+      "腿软",
+      "摔",
+      "跌"
+    ],
+    "guidance": "存在不稳或跌倒风险时，应优先保持环境通道清晰、光线充足并使用可靠支撑。",
+    "followup": "可以询问老人目前是否能够安全站立和行走。",
+    "escalate_if": "出现跌倒、无法站立或明显失衡时应进一步处理。",
+    "avoid": "不要让有明显跌倒风险的老人独自行走。",
+    "source": "CDC Older Adult Fall Prevention"
+  },
+  {
+    "id": "general_03",
+    "domain": "general_care",
+    "title": "药物问题统一转专业人员",
+    "keywords": [
+      "吃药",
+      "药",
+      "停药",
+      "换药",
+      "加药",
+      "减药"
+    ],
+    "guidance": "涉及处方药的开始、停止、剂量或更换，应由医生、护士或其他有资质人员决定。",
+    "followup": "机器人可以记录用药相关疑问并建议向工作人员确认。",
+    "escalate_if": "出现疑似严重药物反应时应及时升级。",
+    "avoid": "机器人不能自行调整任何处方药。",
+    "source": "Care consultation medication safety policy"
+  },
+  {
+    "id": "general_04",
+    "domain": "general_care",
+    "title": "饮水建议需要考虑限制",
+    "keywords": [
+      "喝水",
+      "口渴",
+      "水少",
+      "补水"
+    ],
+    "guidance": "一般情况下应保持适当饮水，但如果老人有明确的医护限水要求，应遵循原有专业安排。",
+    "followup": "必要时可以询问是否有工作人员交代的饮水限制。",
+    "escalate_if": "明显无法饮水或伴持续呕吐等情况时应进一步处理。",
+    "avoid": "不要给所有老人统一规定饮水量。",
+    "source": "NIH NIA Healthy Eating; local safety adaptation"
+  },
+  {
+    "id": "general_05",
+    "domain": "general_care",
+    "title": "机器人护理边界",
+    "keywords": [
+      "什么病",
+      "是不是",
+      "确诊",
+      "严重吗",
+      "药"
+    ],
+    "guidance": "机器人负责基础护理沟通、安全提醒和风险分流，不进行诊断，也不替代医生、护士或护理工作人员。",
+    "followup": "如果老人关注病因，可以说明需要专业人员进一步评估。",
+    "escalate_if": "出现红旗危险表现时直接进入紧急协助。",
+    "avoid": "禁止给出确定诊断和药物治疗方案。",
+    "source": "Care consultation safety policy"
+  }
+]
