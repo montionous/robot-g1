@@ -58,17 +58,23 @@ G1 入口调用 `finalize_care_session()` 收尾；API 和文本入口当前只�
 
 代码固定查找 `speech/data/elder_companion.db`。该数据库名称是共享数据约定，与已废弃的同名场景分别处理。
 
-尚未收到的共享源码：
+已补齐的共享源码：
 
 - `speech/elder_need_registry.py`：需求桥接的顶层导入依赖，影响控制器入口。
 - `speech/decision_announcer.py`、`speech/companion_recording.py`：G1 入口及离线验收的导入依赖。
-- `speech/init_elder_need_db.py`：用户目录清单中存在，需核对共享表结构。
-- `elderly_person` 基表的初始化脚本及匿名演示种子；本批脚本没有建立该基表。
+- `speech/init_elder_need_db.py`：建立共享需求表 `elder_need` 和三个索引；不创建 `data/` 父目录或 `elderly_person` 基表。
+
+仍缺少 `elderly_person` 基表的初始化脚本及匿名演示种子；现有初始化脚本没有建立该基表。
+
+共享需求登记模块提供需求的创建、查询、更新、历史和频次查询。决策播报默认关闭，启用后才调用 `speech.speak_g1()`。会话记录模块按调用创建权限为 `0600` 的 JSONL 文件，单行上限 64 KiB、单文件上限 8 MiB；软件播放回执保留 `physical_heard="unknown"`，不能据回执认定现场已经听见声音。
+
+录制的 `mode` 字段支持 `live`/`replay`，但 `run_recorded_scene()` 仍调用传入的场景函数；仅选择 `--record-mode replay` 不会自动阻止语音或实机执行。这与 `--showcase` 的业务写入开关分别处理。
 
 本批已收到的数据库脚本分工：
 
 | 文件 | 源码作用 |
 | --- | --- |
+| `speech/init_elder_need_db.py` | 建立共享需求表及三个索引，开启 WAL；需要已存在的 `data/` 目录，后续写入需求还需老人基表和记录 |
 | `init_care_db.py` | 建立咨询会话、消息、工作人员关注三张表 |
 | `init_care_memory.py` | 补会话来源/记忆开关列，建立长期记忆表 |
 | `init_care_memory_occurrence.py` | 建立护理记忆历史明细 |
@@ -83,6 +89,8 @@ G1 入口调用 `finalize_care_session()` 收尾；API 和文本入口当前只�
 
 两份同名源码附件逐字节相同，按一份导入。25 个 Python 文件通过 Python 3.10 语法解析，JSON 可解析、知识卡 ID 唯一；导入内容与附件一致，仅统一换行。
 
+补齐四个公共模块后，在 Python 3.12.14 中加装临时 `requests==2.34.2`，9 个共享模块和照护入口的导入检查通过。没有执行数据库连接、云请求、场景函数、初始化脚本或机器人操作；该检查仅证明已收到的导入链能加载，不证明业务功能通过。
+
 尝试的原有验收命令：
 
 ```bash
@@ -90,6 +98,8 @@ python3 speech/scenarios/care_consultation_support/test_showcase_offline_chain.p
 ```
 
 该命令退出码为 1，在前置检查处报告缺少 `speech/data/elder_companion.db`。五阶段业务断言尚未执行，不能报告离线验收通过。
+
+这是前一批的实际运行结果。本批确认数据库前置条件仍未满足，没有重复运行；下一步需要原基表建表脚本及匿名演示种子，而非真实老人数据库。
 
 该脚本按设计检查个体档案调用、风险升级、主动结束、记忆预览和数据库写入边界；它使用离线模型替身，并从只读源数据库备份到临时副本。完整执行仍需上述公共模块及包含所需档案的匿名演示数据库。
 

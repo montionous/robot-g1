@@ -11,6 +11,7 @@
 ## 已收到的文件
 
 - 服务及 G1 客户端：`speech/server.py`、`speech/speech_client.py`。
+- 共享需求与会话模块：`speech/elder_need_registry.py`、`speech/decision_announcer.py`、`speech/companion_recording.py`、`speech/init_elder_need_db.py`。
 - 内层语音包：`speech/speech/` 下 9 个 Python 文件，含 ASR、TTS、播放、预设、包客户端、直接语音接口及娱乐回复模板。
 - G1 音频组件：`speech/g1_audio/` 下 6 个 Python 文件，含单次/连续录音、滚动 ASR、播放封装和娱乐打断。
 - 照护咨询：`speech/scenarios/care_consultation_support/` 下 25 个 Python 文件和含 35 条知识卡的 `care_knowledge.json`。两份同名源码附件内容相同，只导入一次。
@@ -19,7 +20,7 @@
 - 原语音文档及依赖：`speech/README.md`、`speech/TEAM_USAGE.md`、`speech/requirements.txt`。
 - 原项目规则快照：`docs/upstream-project-rules.md`。
 
-合计保留 56 个原项目文件，其中 55 个位于 `speech/`，包含 42 个 Python 文件和 9 个 Shell 脚本。第二批再次提供的 `speech/speech/service.py` 与首批内容一致，没有覆盖出不同版本。
+合计保留 60 个原项目文件，其中 59 个位于 `speech/`，包含 46 个 Python 文件和 9 个 Shell 脚本。第二批再次提供的 `speech/speech/service.py` 与首批内容一致，没有覆盖出不同版本。
 
 ## 现用场景与废弃场景
 
@@ -71,12 +72,14 @@
 ## 还缺少的直接依赖
 
 - 娱乐陪伴、社交活动、联系家属的主体入口，以及它们引用的控制器、意图识别、数据库结构、内容目录和测试。
-- 照护咨询的公共导入依赖：`speech/elder_need_registry.py`、`speech/decision_announcer.py`、`speech/companion_recording.py`。还需 `speech/init_elder_need_db.py` 及 `elderly_person` 基表初始化/匿名演示种子，不能用真实老人数据库补迁移。
+- 老人数据基础：`elderly_person` 基表初始化和匿名演示种子尚未收到。`init_elder_need_db.py` 已收到，但只创建共享需求表及索引，不创建基表或 `speech/data/` 父目录；不能用真实老人数据库补迁移。
 - 原项目根目录的 `care_console` 包：`companion_recording_env.sh` 执行 `python3 -m care_console.link`，传入老人 ID 和日志路径，默认控制台 URL 为 `http://127.0.0.1:8766`。尚未收到该模块，无法确认它对控制台连接的要求和失败处理。
 - G1 播放 bridge：默认查找项目根目录下的 `build/g1_companion_pcm_bridge`。其源码和构建配置尚未收到；官方 SDK 保持外部依赖，不复制 SDK 源码。娱乐打断模块还要求该二进制支持 `--allow-interrupt`、`SIGUSR1` 和对应 JSON 回执，不能用任意同名播放器代替。
 - 仅兼容 `service.listen()` 需要旧项目的 `asr.recorder`、`asr.recognize`；目前没有证据表明四场景仍调用它。
 
 当前 `speech/requirements.txt` 仅声明 `dashscope>=1.25.17`。已收到代码还使用 `openai`、`fastapi`、`pydantic`、`uvicorn`、`requests`；FastAPI 的文件与表单接口还需要 `python-multipart`。这些依赖的实际版本及其余场景依赖待核对，原依赖文件暂不改写。
+
+本批四个共享模块只使用标准库及彼此之间的导入；需求登记模块在导入时加载 `Asia/Shanghai` 时区，需要可用的系统时区数据。会话日志在实际调用时才创建，继续保存在忽略的运行目录内。
 
 系统工具依赖：Qwen3 TTS 分支使用 `ffmpeg` 转换为 16 kHz 单声道 PCM WAV；主机播放可使用 `aplay`/`paplay`，联系家属脚本的健康检查使用 `curl`。原机器报告 Python 3.10.12；麦克风模块使用 `audioop`，该标准库模块已从 Python 3.13 移除，升级解释器需要单独验证。
 
@@ -98,9 +101,13 @@
 
 ## 验证状态
 
-当前累计 42 个 Python 文件、9 个 Shell 脚本，执行导入内容一致性检查、Python AST 语法解析、`bash -n` 和知识库 JSON 检查。第二批重复的 `service.py` 和本批重复源码附件单独核对一致。没有执行会话配置、刷新数据库、监听麦克风或启动播放。
+当前累计 46 个 Python 文件、9 个 Shell 脚本，执行导入内容一致性检查、Python AST 语法解析、`bash -n` 和知识库 JSON 检查。重复的 `service.py` 和照护咨询重复源码附件单独核对一致。没有执行会话配置、刷新数据库、监听麦克风或启动播放。
+
+本批还在 Python 3.12.14 下验证了 9 个模块导入：四个新共享模块，以及 `care_controller`、`g1_voice_demo`、`care_api`、`text_demo`、`test_showcase_offline_chain`。因当前机器缺少 `requests`，仅向 `/tmp/g1-care-import-deps-batch4` 安装 `requests==2.34.2` 及其依赖用于检查；这不是原机器人环境的版本声明，也未修改 `requirements.txt`。检查拦截数据库、出站连接和子进程调用；请求库的本地 IPv6 能力探测被拦截，业务模块未尝试这些操作。未调用任何场景函数、初始化函数或测试 `main()`。
 
 已尝试 `python3 speech/scenarios/care_consultation_support/test_showcase_offline_chain.py`，退出码为 1，原因是前置检查找不到 `speech/data/elder_companion.db`；5 段场景验收均未执行。这是当前迁移缺少测试数据与依赖的阻断，尚无功能测试通过的结论。
+
+本批补齐了该验收脚本的共享源码导入依赖，但数据库前置条件仍未改变，因此没有重复运行同一个会在前置检查停止的命令。
 
 HTTP 启动、云 ASR/TTS、数据库业务行为、真实拨号及 G1 录音/播放均未验证。当前仍缺少其他场景、公共依赖、相关服务、PCM bridge 和运行配置，不能认定项目可独立运行。
 
