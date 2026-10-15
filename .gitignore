@@ -46,7 +46,8 @@ nohup.out
 /speech/input/
 /speech/output/
 /speech/runtime/
-/speech/data/
+/speech/data/*
+!/speech/data/init_db.py
 /speech/video_robot_audio_*/
 /runs/
 

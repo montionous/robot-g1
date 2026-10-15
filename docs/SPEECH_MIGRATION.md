@@ -12,6 +12,7 @@
 
 - 服务及 G1 客户端：`speech/server.py`、`speech/speech_client.py`。
 - 共享需求与会话模块：`speech/elder_need_registry.py`、`speech/decision_announcer.py`、`speech/companion_recording.py`、`speech/init_elder_need_db.py`。
+- 共享老人/家属基表：`speech/data/init_db.py`，创建 `elderly_person`、`family_contact` 和 `contact_call_log`；若未找到名为 `王大爷` 的老人记录，会写入比赛示例老人和两名电话占位联系人。
 - 动作客户端：`speech/robot_actions/action_client.py`、`speech/robot_actions/__init__.py`。
 - 内层语音包：`speech/speech/` 下 9 个 Python 文件，含 ASR、TTS、播放、预设、包客户端、直接语音接口及娱乐回复模板。
 - G1 音频组件：`speech/g1_audio/` 下 6 个 Python 文件，含单次/连续录音、滚动 ASR、播放封装和娱乐打断。
@@ -28,7 +29,7 @@
 - 原语音文档及依赖：`speech/README.md`、`speech/TEAM_USAGE.md`、`speech/requirements.txt`。
 - 原项目规则快照：`docs/upstream-project-rules.md`。
 
-合计保留 118 个原项目文件，其中 114 个位于 `speech/`，包含 101 个 Python 文件和 10 个 Shell 脚本。第二批再次提供的 `speech/speech/service.py` 与首批内容一致，没有覆盖出不同版本。
+合计保留 119 个原项目文件，其中 115 个位于 `speech/`，包含 102 个 Python 文件和 10 个 Shell 脚本。第二批再次提供的 `speech/speech/service.py` 与首批内容一致，没有覆盖出不同版本。
 
 ## 现用场景与废弃场景
 
@@ -84,13 +85,23 @@
 
 当前客户端 `speak_g1()` 读取服务返回的 `audio_path`，并在客户端文件系统中查找 WAV。这要求客户端能访问对应文件路径；将服务移到另一台机器时，仅更改 URL 不能保证播放可用。
 
+## 共享基表初始化
+
+`speech/data/init_db.py` 是联系家属与照护场景共用的基础初始化脚本。它创建 `elderly_person`、`family_contact`、`contact_call_log` 三张表；若未找到名为 `王大爷` 的老人记录，会写入一名比赛示例老人和两名授权联系人。两个电话号码均为 `REPLACE_WITH_*_PHONE` 占位符，没有真实电话号码或密钥。
+
+`.gitignore` 只为该初始化源码保留例外，`speech/data/` 中生成的 SQLite 文件仍被忽略。直接运行原脚本会在同目录创建 `elder_companion.db`；本次迁移没有在仓库生成或导入该文件，只使用临时 SQLite 路径验证过脚本。
+
+该脚本使用 `CREATE TABLE IF NOT EXISTS`，以老人姓名判断是否已写入示例数据。它不会迁移旧 schema，也不会为已有同名老人补写缺失联系人。外键依赖每个 SQLite 连接启用 `PRAGMA foreign_keys = ON`。照护的个人档案种子固定使用 `elderly_id=1`；社交的一些控制器和入口也默认该 ID，且社交表不对该列建立外键。已有数据库中的同名老人若不是这个 ID，需要先核对身份映射。
+
+若在受控的空演示库中做完整初始化，基础表应先于 `speech/init_elder_need_db.py`、照护场景的会话/记忆/个人档案初始化脚本执行；社交活动的 `init_activity_db.py` 可独立执行，之后再按需要执行活动种子和日程脚本。这里仅记录依赖顺序，并不在仓库中创建数据库。
+
 ## 还缺少的直接依赖
 
 - 联系家属的 Shell 入口、编排器和 Android client 已收到；Shell 仍固定依赖原机器的 `speech/venv/bin/python`。编排器的原有自动测试尚未收到，实际编排和电话链仍未验证。
 - 当前活动 SQLite 未初始化或填充；内存演练与已收到的展示测试不替代真实 SQL、报名记录、工作人员通知及日程刷新验收。
 - 娱乐陪伴的实际媒体。当前仓库的音乐、新闻、戏曲目录均为空；展示入口检查至少两首音乐、一条新闻、一段戏曲。展示 unittest 已收到，打断等其他验收脚本仍未上传。
 - 动作执行器：项目根 `scripts/g1_elder_companion_motion_executor.py`、`scripts/g1_elder_companion_custom_action_executor.py` 及其依赖。动作客户端已收到，但默认引用原机器的 `tv` Python 环境和 `enp3s0`；源码可通过 `G1_ACTION_PYTHON`、`G1_ACTION_INTERFACE` 覆盖，尚未验证实机兼容。
-- 老人数据基础：`elderly_person`、`family_contact`、`contact_call_log` 的基表初始化和匿名演示种子尚未收到。`init_elder_need_db.py` 已收到，但只创建共享需求表及索引，不创建基表或 `speech/data/` 父目录；不能用真实老人数据库补迁移。
+- 共享老人/家属基表初始化源码已收到，但仍缺已有 SQLite 数据库的迁移、同名老人联系人回填和稳定老人 ID 对齐方案。`init_elder_need_db.py` 只创建共享需求表及索引；照护完整链仍需其余会话、记忆和个人档案表及受控演示种子。
 - 原项目根目录的 `care_console` 包：`companion_recording_env.sh` 执行 `python3 -m care_console.link`，传入老人 ID 和日志路径，默认控制台 URL 为 `http://127.0.0.1:8766`。尚未收到该模块，无法确认它对控制台连接的要求和失败处理。
 - G1 播放 bridge：默认查找项目根目录下的 `build/g1_companion_pcm_bridge`。其源码和构建配置尚未收到；官方 SDK 保持外部依赖，不复制 SDK 源码。娱乐打断模块还要求该二进制支持 `--allow-interrupt`、`SIGUSR1` 和对应 JSON 回执，不能用任意同名播放器代替。
 - 仅兼容 `service.listen()` 需要旧项目的 `asr.recorder`、`asr.recognize`；目前没有证据表明四场景仍调用它。
@@ -121,13 +132,11 @@
 
 ## 验证状态
 
-当前累计 101 个 Python 文件、10 个 Shell 脚本，执行导入内容一致性检查、Python AST 语法解析、`bash -n` 和三份 JSON 检查。重复的 `service.py` 和照护咨询重复源码附件单独核对一致。没有执行会话配置、刷新数据库、监听麦克风或启动播放。
+当前累计 102 个 Python 文件、10 个 Shell 脚本，执行导入内容一致性检查、Python AST 语法解析、`bash -n` 和三份 JSON 检查。重复的 `service.py` 和照护咨询重复源码附件单独核对一致。没有执行会话配置、刷新数据库、监听麦克风或启动播放。
 
 本批还在 Python 3.12.14 下验证了 9 个模块导入：四个新共享模块，以及 `care_controller`、`g1_voice_demo`、`care_api`、`text_demo`、`test_showcase_offline_chain`。因当前机器缺少 `requests`，仅向 `/tmp/g1-care-import-deps-batch4` 安装 `requests==2.34.2` 及其依赖用于检查；这不是原机器人环境的版本声明，也未修改 `requirements.txt`。检查拦截数据库、出站连接和子进程调用；请求库的本地 IPv6 能力探测被拦截，业务模块未尝试这些操作。未调用任何场景函数、初始化函数或测试 `main()`。
 
-已尝试 `python3 speech/scenarios/care_consultation_support/test_showcase_offline_chain.py`，退出码为 1，原因是前置检查找不到 `speech/data/elder_companion.db`；5 段场景验收均未执行。这是当前迁移缺少测试数据与依赖的阻断，尚无功能测试通过的结论。
-
-本批补齐了该验收脚本的共享源码导入依赖，但数据库前置条件仍未改变，因此没有重复运行同一个会在前置检查停止的命令。
+已尝试 `python3 speech/scenarios/care_consultation_support/test_showcase_offline_chain.py`，退出码为 1，原因是前置检查找不到 `speech/data/elder_companion.db`；5 段场景验收均未执行。基础初始化源码现已导入，但为避免在仓库创建数据文件，没有按默认路径执行；完整照护链还需要需求、会话、记忆和个人档案等表及种子。因此没有重复运行同一个会在前置检查停止的命令。
 
 娱乐陪伴的 12 个控制与媒体模块导入通过；两个语音入口前批因缺 `robot_actions` 受阻，本批补齐真实动作模块后，分别执行 `--help` 加载并退出成功。新闻音频生成脚本只做静态检查，未导入或执行。前批已运行原有规则脚本的 14 个样例及文字入口的 5 轮输入；媒体为空时返回 `empty`/`not_found`，停止指令正常结束，未验证实际播放。
 
@@ -137,11 +146,13 @@
 
 本轮明确选择新增的原有 `test_social_activity_showcase` 套件，16 项实际执行：15 项通过、1 项失败、0 错误、0 跳过，退出码为 1。失败项 `test_background_speech_is_ignored` 正式覆盖了同一个背景描述问题：期望 `other`，实际 `query`。套件使用原有内存仓库及模型 stub，没有业务网络、数据库或子进程调用；原始测试和业务代码未改动。
 
-联系家属的 10 个模块在拦截数据库、业务网络和子进程调用的条件下真实导入通过，三个演示入口的 `--help` 正常退出。请求库的本地 IPv6 探测单独拦截；没有业务调用尝试。`mock_call_server` 导入创建了忽略目录 `speech/runtime/mock_calls/`，未启动监听。`test_db.py` 顶层会查库并打印完整老人/联系人，因此只做语法和源码一致性检查，不导入或执行，也未使用全仓自动测试收集。没有创建老人数据库。
+联系家属的 10 个模块在拦截数据库、业务网络和子进程调用的条件下真实导入通过，三个演示入口的 `--help` 正常退出。请求库的本地 IPv6 探测单独拦截；没有业务调用尝试。`mock_call_server` 导入创建了忽略目录 `speech/runtime/mock_calls/`，未启动监听。`test_db.py` 顶层会查库并打印完整老人/联系人，因此只做语法和源码一致性检查，不导入或执行，也未使用全仓自动测试收集。没有创建仓库中的老人数据库。
 
 前批在 Python 3.12.14 下明确选择两份联系家属原有 unittest，18 项实际执行：17 项通过、0 断言失败、1 错误、0 跳过，合并执行退出码为 1。其中 `test_dry_run_prepare` 在检查根目录 `scripts/g1_call_owner_once.sh` 时因文件缺失抛出 `CallBackendError`。本批导入用户提供的真实 Shell 源码后，重跑同样两份原套件：18 项全部通过、0 失败、0 错误、0 跳过，退出码为 0。文件存在性条件已满足，但 `subprocess.run` 仍由原测试 mock，并未执行 Shell 或缺失的编排器。没有修改测试或业务逻辑。
 
 两个真实模式后端用例使用原有 `_run_phone_client` mock；授权状态用例使用原有合成联系人，电话字段为占位文本。审计未发现数据库、业务网络或子进程调用尝试，未读取电话 token 或创建老人数据库。测试尚未覆盖 `safe_stub`、owner 绑定、语音入口整条授权调用链和 Android client 的实际行为。
+
+本批将 `init_db.py` 的 `DB_PATH` 临时指向独立 SQLite 文件，连续运行两次后确认三张表、1 名示例老人和 2 名联系人均未重复写入；`contact_family/db_access.py` 的联系人别名查询、通话日志写入和读取均可在同一临时库中工作。临时连接中无效外键写入触发 `IntegrityError`。审计没有发现业务网络或子进程调用，且没有在仓库创建数据库文件。
 
 新收到的 Android client 只导入定义，未调用 `run()`、`main()` 或 HTTP/写盘函数；模块导入通过，没有数据库、网络或子进程调用。静态核对发现真实后端预先创建输出目录，而 client 的 `_write_result()` 要求新建同一路径，存在 `FileExistsError` 冲突。HTTP 操作先于结果写盘，故非零退出不证明未发拨号请求。该冲突和错误回执字段的局限已记录在联系家属说明，本轮未进行端到端复现或修改。
 
