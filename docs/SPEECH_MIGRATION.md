@@ -18,12 +18,13 @@
 - 照护咨询：`speech/scenarios/care_consultation_support/` 下 25 个 Python 文件和含 35 条知识卡的 `care_knowledge.json`。两份同名源码附件内容相同，只导入一次。
 - 娱乐陪伴：`speech/scenarios/companion_entertainment/` 下 15 个 Python 文件，以及用户提供的 `content_catalog.json`、`news_scripts.json`；未导入音频素材。
 - 娱乐展示验收：`speech/test_companion_entertainment_showcase.py`，包含 15 项原有 unittest，保持断言原样。
+- 社交活动：`speech/scenarios/social_activity_support/` 下 21 个 Python 文件，包含普通版、展示版、日程脚本和三个 `video_baseline` 文件，全部保留原路径。
 - 语音服务启动及会话配置脚本：`speech/run_server.sh`、`speech/companion_recording_env.sh`。
 - 四场景启动脚本：下表中的七个脚本。
 - 原语音文档及依赖：`speech/README.md`、`speech/TEAM_USAGE.md`、`speech/requirements.txt`。
 - 原项目规则快照：`docs/upstream-project-rules.md`。
 
-合计保留 80 个原项目文件，其中 79 个位于 `speech/`，包含 64 个 Python 文件和 9 个 Shell 脚本。第二批再次提供的 `speech/speech/service.py` 与首批内容一致，没有覆盖出不同版本。
+合计保留 101 个原项目文件，其中 100 个位于 `speech/`，包含 85 个 Python 文件和 9 个 Shell 脚本。第二批再次提供的 `speech/speech/service.py` 与首批内容一致，没有覆盖出不同版本。
 
 ## 现用场景与废弃场景
 
@@ -48,7 +49,7 @@
 
 ## 已从脚本确认的入口
 
-以下描述脚本和源码内容，未启动语音场景。照护咨询通过 `g1_voice_demo.py --showcase` 切换展示模式；娱乐陪伴有独立的 `g1_voice_demo.py` 和 `g1_showcase_demo.py`；其余场景的版本入口仍待源码与实际命令核对。
+以下描述脚本和源码内容，未启动语音场景。照护咨询通过 `g1_voice_demo.py --showcase` 切换展示模式；娱乐陪伴和社交活动均有独立的 `g1_voice_demo.py` 与 `g1_showcase_demo.py`；联系家属入口仍待源码与实际命令核对。
 
 | 场景 | 已导入的启动脚本 | 脚本引用的 Python 入口及状态 |
 | --- | --- | --- |
@@ -56,8 +57,8 @@
 | 照护咨询 | `run_g1_demo.sh` | `g1_voice_demo.py`，已收到 |
 | 娱乐陪伴 | `run_g1_demo.sh` | `g1_voice_demo.py`，已收到 |
 | 娱乐陪伴展示 | 尚未收到专用启动脚本 | `g1_showcase_demo.py`，已收到 |
-| 社交活动 | `run_g1_demo.sh` | `g1_voice_demo.py`，未收到 |
-| 社交活动展示 | `run_g1_showcase.sh` | 先运行 `refresh_activity_schedule.py`，再运行 `g1_showcase_demo.py`，均未收到 |
+| 社交活动 | `run_g1_demo.sh` | `g1_voice_demo.py`，已收到 |
+| 社交活动展示 | `run_g1_showcase.sh` | 先运行 `refresh_activity_schedule.py`，再运行 `g1_showcase_demo.py`，均已收到 |
 | 联系家属 | `run_g1_demo.sh` | `g1_voice_demo.py`，未收到 |
 | 联系家属模拟通话 | `run_mock_call_server.sh` | `mock_call_server.py`，未收到 |
 
@@ -66,6 +67,8 @@
 照护咨询的 API、文本和 G1 语音入口的能力及收尾行为不同，详见 [照护咨询模块说明](CARE_CONSULTATION.md)。JSON 知识检索模块也尚未在本批控制器主链中接入，不把知识库文件已导入等同于运行链已使用。
 
 娱乐陪伴版本、媒体目录与 JSON 清单的关系见 [娱乐陪伴模块说明](COMPANION_ENTERTAINMENT.md)。当前两个 G1 入口及文字入口通过 `LocalMediaLibrary` 扫描实际媒体目录；`content_catalog.json` 由另一条 `EntertainmentSession` 路径读取，保留原样，用途不据此定为废弃。
+
+社交活动版本、内存演练及数据库脚本见 [社交活动模块说明](SOCIAL_ACTIVITY_SUPPORT.md)。三个 `video_baseline` 文件保留原状，其中视频语音入口仍导入当前 `showcase_controller` 和 `showcase_intent`，未把这些文件认定为独立冻结基线或另一个现用场景。
 
 ## 语音调用路径
 
@@ -77,7 +80,8 @@
 
 ## 还缺少的直接依赖
 
-- 社交活动、联系家属的主体入口，以及它们引用的控制器、意图识别、数据库结构、内容目录和测试。
+- 联系家属的主体入口，以及它们引用的逻辑、通话后端、数据库结构和测试。
+- 社交活动的原有 `speech/test_social_activity_showcase.py` 尚未上传。当前活动 SQLite 也未初始化或填充；内存演练不替代真实 SQL、报名记录、工作人员通知及日程刷新验收。
 - 娱乐陪伴的实际媒体。当前仓库的音乐、新闻、戏曲目录均为空；展示入口检查至少两首音乐、一条新闻、一段戏曲。展示 unittest 已收到，打断等其他验收脚本仍未上传。
 - 动作执行器：项目根 `scripts/g1_elder_companion_motion_executor.py`、`scripts/g1_elder_companion_custom_action_executor.py` 及其依赖。动作客户端已收到，但默认引用原机器的 `tv` Python 环境和 `enp3s0`；源码可通过 `G1_ACTION_PYTHON`、`G1_ACTION_INTERFACE` 覆盖，尚未验证实机兼容。
 - 老人数据基础：`elderly_person` 基表初始化和匿名演示种子尚未收到。`init_elder_need_db.py` 已收到，但只创建共享需求表及索引，不创建基表或 `speech/data/` 父目录；不能用真实老人数据库补迁移。
@@ -100,6 +104,7 @@
 - 多数场景脚本使用当前环境的 `python3`，社交展示脚本则使用 `./venv/bin/python`，解释器选择尚未统一。
 - 四场景的 `run_g1_demo.sh` 都先加载 `companion_recording_env.sh`，并追加老人 ID、会话日志和 `--record-mode live`。配置脚本要求有效的 `G1_ELDERLY_ID`，在项目根目录的 `runs/elder-companion-interaction` 下创建会话目录，并调用 `care_console.link`；这些运行记录已加入忽略范围。
 - 社交展示脚本先刷新活动日程；确认目标数据库及写入行为后再执行。
+- 社交 `seed_demo_activities.py` 会清空四张活动相关表；`refresh_activity_schedule.py` 虽不删除历史场次，也会更新已匹配场次的人数、容量、截止时间和状态等字段。本轮均未执行。
 - 联系家属启动脚本固定检查 `http://127.0.0.1:8780/health`。
 - `playback.py` 的旧播放器默认路径为 `/home/unitree/medication_robot/bin/g1_play_wav`，可用 `G1_WAV_PLAYER` 覆盖。
 - 麦克风模块用 `192.168.123.164` 作为网卡选择目标，接收 `239.168.123.161:5555` 的音频多播；与上游规则中的设备地址不完全一致，保留原值，等待现用机器验证。
@@ -109,7 +114,7 @@
 
 ## 验证状态
 
-当前累计 64 个 Python 文件、9 个 Shell 脚本，执行导入内容一致性检查、Python AST 语法解析、`bash -n` 和三份 JSON 检查。重复的 `service.py` 和照护咨询重复源码附件单独核对一致。没有执行会话配置、刷新数据库、监听麦克风或启动播放。
+当前累计 85 个 Python 文件、9 个 Shell 脚本，执行导入内容一致性检查、Python AST 语法解析、`bash -n` 和三份 JSON 检查。重复的 `service.py` 和照护咨询重复源码附件单独核对一致。没有执行会话配置、刷新数据库、监听麦克风或启动播放。
 
 本批还在 Python 3.12.14 下验证了 9 个模块导入：四个新共享模块，以及 `care_controller`、`g1_voice_demo`、`care_api`、`text_demo`、`test_showcase_offline_chain`。因当前机器缺少 `requests`，仅向 `/tmp/g1-care-import-deps-batch4` 安装 `requests==2.34.2` 及其依赖用于检查；这不是原机器人环境的版本声明，也未修改 `requirements.txt`。检查拦截数据库、出站连接和子进程调用；请求库的本地 IPv6 能力探测被拦截，业务模块未尝试这些操作。未调用任何场景函数、初始化函数或测试 `main()`。
 
@@ -120,6 +125,8 @@
 娱乐陪伴的 12 个控制与媒体模块导入通过；两个语音入口前批因缺 `robot_actions` 受阻，本批补齐真实动作模块后，分别执行 `--help` 加载并退出成功。新闻音频生成脚本只做静态检查，未导入或执行。前批已运行原有规则脚本的 14 个样例及文字入口的 5 轮输入；媒体为空时返回 `empty`/`not_found`，停止指令正常结束，未验证实际播放。
 
 本批明确选择原有 `test_companion_entertainment_showcase` 套件运行，15 项实际执行：12 项通过、3 项失败、0 错误、0 跳过，测试退出码为 1。三项失败是分类结果与测试期望不同，详见娱乐模块文档；随后逐例核对，状态机均返回 `ignore` 且状态未改变。这些诊断不替代原测试，也没有把该套件记为通过。业务源码和测试断言均保持原样。
+
+社交活动的 21 个模块导入通过，普通语音、展示语音和文字展示入口的 `--help` 均正常退出。原有 `text_showcase_demo.py --demo-data --scripted --no-llm` 的 12 轮内存样例执行到 `done`，没有访问 SQLite、云模型或机器人，但复现了背景描述误触发查询、打断已选活动上下文的问题。后续复述/参加未完成，不能将脚本退出码 0 视为完整功能验收通过；细节及复现路径已记录，源码未修改。
 
 HTTP 启动、云 ASR/TTS、数据库业务行为、真实拨号及 G1 录音/播放均未验证。当前仍缺少其他场景、公共依赖、相关服务、PCM bridge 和运行配置，不能认定项目可独立运行。
 
