@@ -63,8 +63,9 @@ G1 入口调用 `finalize_care_session()` 收尾；API 和文本入口当前只�
 - `speech/elder_need_registry.py`：需求桥接的顶层导入依赖，影响控制器入口。
 - `speech/decision_announcer.py`、`speech/companion_recording.py`：G1 入口及离线验收的导入依赖。
 - `speech/init_elder_need_db.py`：建立共享需求表 `elder_need` 和三个索引；不创建 `data/` 父目录或 `elderly_person` 基表。
+- `speech/data/init_db.py`：建立 `elderly_person`、`family_contact` 和 `contact_call_log` 基表，并在未找到比赛示例老人时写入电话占位符联系人。
 
-仍缺少 `elderly_person` 基表的初始化脚本及匿名演示种子；现有初始化脚本没有建立该基表。
+老人基表初始化源码已收到，但本仓库没有生成默认数据库；现有照护离线验收仍缺需求、会话、记忆和个人档案等表及受控演示种子。
 
 共享需求登记模块提供需求的创建、查询、更新、历史和频次查询。决策播报默认关闭，启用后才调用 `speech.speak_g1()`。会话记录模块按调用创建权限为 `0600` 的 JSONL 文件，单行上限 64 KiB、单文件上限 8 MiB；软件播放回执保留 `physical_heard="unknown"`，不能据回执认定现场已经听见声音。
 
@@ -83,7 +84,7 @@ G1 入口调用 `finalize_care_session()` 收尾；API 和文本入口当前只�
 
 `care_memory_ingestion` 提取记录表由 `care_memory_persistence.init_memory_persistence()` 在运行时创建。单独执行 `init_care_db.py` 不足以满足 `care_db.create_session()` 所需的列和完整运行结构。本轮没有执行初始化或种子脚本；后续在独立匿名测试库核对初始化顺序，不直接修改机器人原库。
 
-公共语音服务、`care_console.link`、G1 PCM bridge 等前批次记录的依赖仍需补齐。云模型从环境读取现有 DashScope 配置，未上传密钥。
+公共语音服务和 G1 PCM bridge 等前批次记录的依赖仍需补齐。`care_console.link` 源码已收到：它只连接本机工作台，并在普通 G1 场景启动前登记本轮交互日志；本轮没有启动工作台、创建其数据库或连接真实日志。云模型从环境读取现有 DashScope 配置，未上传密钥。
 
 ## 本轮验证结果
 
@@ -99,7 +100,7 @@ python3 speech/scenarios/care_consultation_support/test_showcase_offline_chain.p
 
 该命令退出码为 1，在前置检查处报告缺少 `speech/data/elder_companion.db`。五阶段业务断言尚未执行，不能报告离线验收通过。
 
-这是前一批的实际运行结果。本批确认数据库前置条件仍未满足，没有重复运行；下一步需要原基表建表脚本及匿名演示种子，而非真实老人数据库。
+这是前一批的实际运行结果。本批已补入基表初始化源码，但为避免在仓库创建数据文件没有按默认路径执行；完整照护验收还需要其余数据库初始化和受控演示种子，因此没有重复运行。
 
 该脚本按设计检查个体档案调用、风险升级、主动结束、记忆预览和数据库写入边界；它使用离线模型替身，并从只读源数据库备份到临时副本。完整执行仍需上述公共模块及包含所需档案的匿名演示数据库。
 

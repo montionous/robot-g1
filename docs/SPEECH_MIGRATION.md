@@ -2,7 +2,7 @@
 
 ## 范围与来源
 
-从用户提供的文本附件导入原项目 `/home/user/github-product/g1-dex3-care-vla` 中已收到的文件，保留 `speech/` 层级。此仓库当前承载语音与日常陪伴模块，不包含完整机器人项目。
+从用户提供的文本附件和源码包导入原项目 `/home/user/github-product/g1-dex3-care-vla` 中已收到的文件，保留 `speech/` 与 `care_console/` 层级。此仓库当前承载语音、日常陪伴和护理工作台源码，不包含完整机器人项目。
 
 原项目的 `AGENTS.md` 保存为 `docs/upstream-project-rules.md`，用于保留原团队的控制边界、停止条件和协作约定；其中的历史训练路线、绝对路径和情绪模块状态不代表本仓库已经具备这些组件。
 
@@ -26,10 +26,11 @@
 - 项目根电话脚本：`scripts/g1_call_owner_once.sh`、`scripts/g1_contact_family_call.py`、`scripts/g1_phone_dial.py`，分别为 Shell 入口、G1/电话编排器和 Android HTTP 拨号 client。
 - 语音服务启动及会话配置脚本：`speech/run_server.sh`、`speech/companion_recording_env.sh`。
 - 四场景启动脚本：下表中的七个脚本。
+- 护理工作台：`care_console/` 下 11 个运行 Python 文件、7 个 Python 测试、一个 Node 测试、6 个静态页面文件、`.gitignore` 和 `deploy/requirements.txt`。未收到其 README、审计/部署说明、systemd/Nginx 配置或任何 `runtime/` 内容。
 - 原语音文档及依赖：`speech/README.md`、`speech/TEAM_USAGE.md`、`speech/requirements.txt`。
 - 原项目规则快照：`docs/upstream-project-rules.md`。
 
-合计保留 119 个原项目文件，其中 115 个位于 `speech/`，包含 102 个 Python 文件和 10 个 Shell 脚本。第二批再次提供的 `speech/speech/service.py` 与首批内容一致，没有覆盖出不同版本。
+合计保留 146 个原项目文件，其中 115 个位于 `speech/`、27 个位于 `care_console/`，包含 120 个 Python 文件和 10 个 Shell 脚本。第二批再次提供的 `speech/speech/service.py` 与首批内容一致，没有覆盖出不同版本。
 
 ## 现用场景与废弃场景
 
@@ -85,6 +86,16 @@
 
 当前客户端 `speak_g1()` 读取服务返回的 `audio_path`，并在客户端文件系统中查找 WAV。这要求客户端能访问对应文件路径；将服务移到另一台机器时，仅更改 URL 不能保证播放可用。
 
+## 护理工作台与会话日志链接
+
+`care_console.link` 是当前已确认的唯一场景接入点。四个普通 `run_g1_demo.sh` 会先 source `speech/companion_recording_env.sh`，后者创建本轮 `care-session.jsonl` 路径，并以 `--elderly-id`、`--interaction-log` 调用 `python3 -m care_console.link`；社交展示脚本不走这条链。链接器支持尚未创建的日志文件，按场景身份和日志路径在控制台中预先登记来源。
+
+链接器只接受无路径、无认证信息的 `http://127.0.0.1:<port>` 或 `http://localhost:<port>` 地址，禁用代理和重定向。实际链接会读取控制台概览和来源列表，并向本机工作台写入老人绑定和日志来源；它不是只读检查。`companion_recording_env.sh` 使用 `set -e`，控制台未就绪、共享数据未准备或登记失败都会阻止普通 G1 入口继续启动。
+
+工作台启动入口为 `python -m care_console`，其模块顶层会解析参数并启动 Uvicorn，不可作为普通导入检查目标。`create_app()` 被调用后会创建或迁移控制台自己的 SQLite 文件，默认还会启动同步任务；本轮没有调用它。工作台只读访问默认的 `speech/data/elder_companion.db`，需要其中的老人基表和 `elder_need` 表存在；它不修改该共享数据库。
+
+`care_console/deploy/requirements.txt` 固定 FastAPI、Uvicorn 和 Pydantic 的运行时版本，保留为工作台独立依赖清单，不并入 `speech/requirements.txt`。`care_console/runtime/` 包含数据库、认证和运行产物，已在根 `.gitignore` 中整体忽略；其余认证文件也应保存在仓库外。
+
 ## 共享基表初始化
 
 `speech/data/init_db.py` 是联系家属与照护场景共用的基础初始化脚本。它创建 `elderly_person`、`family_contact`、`contact_call_log` 三张表；若未找到名为 `王大爷` 的老人记录，会写入一名比赛示例老人和两名授权联系人。两个电话号码均为 `REPLACE_WITH_*_PHONE` 占位符，没有真实电话号码或密钥。
@@ -102,7 +113,7 @@
 - 娱乐陪伴的实际媒体。当前仓库的音乐、新闻、戏曲目录均为空；展示入口检查至少两首音乐、一条新闻、一段戏曲。展示 unittest 已收到，打断等其他验收脚本仍未上传。
 - 动作执行器：项目根 `scripts/g1_elder_companion_motion_executor.py`、`scripts/g1_elder_companion_custom_action_executor.py` 及其依赖。动作客户端已收到，但默认引用原机器的 `tv` Python 环境和 `enp3s0`；源码可通过 `G1_ACTION_PYTHON`、`G1_ACTION_INTERFACE` 覆盖，尚未验证实机兼容。
 - 共享老人/家属基表初始化源码已收到，但仍缺已有 SQLite 数据库的迁移、同名老人联系人回填和稳定老人 ID 对齐方案。`init_elder_need_db.py` 只创建共享需求表及索引；照护完整链仍需其余会话、记忆和个人档案表及受控演示种子。
-- 原项目根目录的 `care_console` 包：`companion_recording_env.sh` 执行 `python3 -m care_console.link`，传入老人 ID 和日志路径，默认控制台 URL 为 `http://127.0.0.1:8766`。尚未收到该模块，无法确认它对控制台连接的要求和失败处理。
+- 护理工作台源码、静态页、测试和运行时依赖清单已收到；尚缺原 README、审计/部署文档、systemd/Nginx 配置、真实控制台数据库、认证文件和受控启动配置。控制台与四场景的真实日志登记尚未验收。
 - G1 播放 bridge：默认查找项目根目录下的 `build/g1_companion_pcm_bridge`。其源码和构建配置尚未收到；官方 SDK 保持外部依赖，不复制 SDK 源码。娱乐打断模块还要求该二进制支持 `--allow-interrupt`、`SIGUSR1` 和对应 JSON 回执，不能用任意同名播放器代替。
 - 仅兼容 `service.listen()` 需要旧项目的 `asr.recorder`、`asr.recognize`；目前没有证据表明四场景仍调用它。
 
@@ -120,6 +131,7 @@
 - 联系家属的两个启动脚本写死 `$HOME/github-product/g1-dex3-care-vla/speech`。
 - 多数场景脚本使用当前环境的 `python3`，社交展示脚本则使用 `./venv/bin/python`，解释器选择尚未统一。
 - 四场景的 `run_g1_demo.sh` 都先加载 `companion_recording_env.sh`，并追加老人 ID、会话日志和 `--record-mode live`。配置脚本要求有效的 `G1_ELDERLY_ID`，在项目根目录的 `runs/elder-companion-interaction` 下创建会话目录，并调用 `care_console.link`；这些运行记录已加入忽略范围。
+- `care_console` 默认监听 `127.0.0.1:8766`，控制台入口还可接收工作台数据库、交互数据库、允许主机、部署模式和认证文件路径。未提供认证文件时云部署模式会拒绝启动；本轮没有启动任何工作台服务。
 - 社交展示脚本先刷新活动日程；确认目标数据库及写入行为后再执行。
 - 社交 `seed_demo_activities.py` 会清空四张活动相关表；`refresh_activity_schedule.py` 虽不删除历史场次，也会更新已匹配场次的人数、容量、截止时间和状态等字段。本轮均未执行。
 - 联系家属启动脚本固定检查 `http://127.0.0.1:8780/health`。
@@ -132,7 +144,9 @@
 
 ## 验证状态
 
-当前累计 102 个 Python 文件、10 个 Shell 脚本，执行导入内容一致性检查、Python AST 语法解析、`bash -n` 和三份 JSON 检查。重复的 `service.py` 和照护咨询重复源码附件单独核对一致。没有执行会话配置、刷新数据库、监听麦克风或启动播放。
+当前累计 120 个 Python 文件、10 个 Shell 脚本，执行导入内容一致性检查、Python AST 语法解析、`bash -n` 和三份 JSON 检查。重复的 `service.py` 和照护咨询重复源码附件单独核对一致。没有执行会话配置、刷新数据库、监听麦克风或启动播放。
+
+护理工作台附件在解压前通过路径和链接类型检查，导入后逐文件与附件一致。18 个工作台 Python 文件和静态资源检查通过；除会直接启动 Uvicorn 的 `care_console.__main__` 外，10 个运行模块在拦截 SQLite、子进程和 HTTP 调用的条件下导入成功。工作台原有 Node UI 测试 14 项全部通过。选择运行的 84 个 Python 测试中 83 项通过、1 项失败：删除后重建同一路径 JSONL 的恢复测试依赖 inode 复用，本环境检测到新 inode 后按源码重读仍保留的无效首行，因而持续报告“记录被拒绝”。该失败可重复，源码和原断言均未修改。未运行会启动 loopback server、Shell 子进程或 `python -m care_console` 子进程的两份工作台测试；没有启动 Uvicorn、创建仓库数据库、访问真实共享库或业务网络。
 
 本批还在 Python 3.12.14 下验证了 9 个模块导入：四个新共享模块，以及 `care_controller`、`g1_voice_demo`、`care_api`、`text_demo`、`test_showcase_offline_chain`。因当前机器缺少 `requests`，仅向 `/tmp/g1-care-import-deps-batch4` 安装 `requests==2.34.2` 及其依赖用于检查；这不是原机器人环境的版本声明，也未修改 `requirements.txt`。检查拦截数据库、出站连接和子进程调用；请求库的本地 IPv6 能力探测被拦截，业务模块未尝试这些操作。未调用任何场景函数、初始化函数或测试 `main()`。
 

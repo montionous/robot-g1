@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#176b63">
+  <title>登录 · 伴护</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/login.css">
+  <script src="/static/login.js" defer></script>
+</head>
+<body class="login-page">
+  <main class="login-shell">
+    <section class="login-story" aria-labelledby="story-title">
+      <div class="login-brand"><span class="brand-mark">伴</span><span>伴护<small>老人陪伴护理工作台</small></span></div>
+      <p class="story-kicker">陪伴，让照护更有温度</p>
+      <h2 id="story-title">把陪伴，<br>放在心上。</h2>
+      <p class="story-copy">读懂情绪变化，关注异常情况，<br>留住每一次交流。</p>
+      <svg class="care-scene" viewBox="0 0 420 220" fill="none" aria-hidden="true">
+        <ellipse cx="192" cy="195" rx="169" ry="16" fill="#42766a" opacity=".35"/>
+        <circle cx="135" cy="100" r="80" fill="#d8e5ce" opacity=".09"/>
+        <path d="M50 178V137C50 121 60 112 73 112H91C105 112 113 122 113 137V178" stroke="#a4c5b1" stroke-width="3"/>
+        <path d="M240 178V137C240 121 230 112 217 112H199C185 112 177 122 177 137V178" stroke="#a4c5b1" stroke-width="3"/>
+        <path d="M56 155H111M179 155H234M64 178V191M104 178V191M185 178V191M227 178V191" stroke="#a4c5b1" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="83" cy="84" r="17" fill="#d3ddc7"/>
+        <path d="M69 108C72 99 96 99 101 111L117 137L149 138" stroke="#d3ddc7" stroke-width="16" stroke-linecap="round"/>
+        <path d="M78 144L82 163L115 180" stroke="#d3ddc7" stroke-width="13" stroke-linecap="round"/>
+        <circle cx="205" cy="77" r="17" fill="#f1dec2"/>
+        <path d="M215 104C206 95 189 99 186 111L166 133L145 138" stroke="#f1dec2" stroke-width="16" stroke-linecap="round"/>
+        <path d="M207 141L201 164L170 180" stroke="#f1dec2" stroke-width="13" stroke-linecap="round"/>
+        <path d="M315 149V79M316 119C295 118 288 107 287 93C305 93 315 105 316 119ZM316 100C336 98 343 86 342 73C324 75 317 86 316 100Z" stroke="#a4c5b1" stroke-width="3" stroke-linecap="round"/>
+        <path d="M299 149H333L328 183H305L299 149Z" fill="#8dac96"/>
+        <path d="M43 195H346" stroke="#8dac96" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      <p class="story-footer">情绪观察<span>·</span>异常关注<span>·</span>交流档案</p>
+    </section>
+    <section class="login-panel" aria-labelledby="login-title">
+      <div class="login-form-wrap">
+        <p class="login-eyebrow">欢迎回来</p>
+        <h1 id="login-title">登录护理工作台</h1>
+        <p class="login-description">查看记录，接续每一次照护。</p>
+        <form id="login-form" method="post" action="/api/auth/login">
+          <label for="username">账号</label>
+          <input id="username" name="username" autocomplete="username" maxlength="80" placeholder="请输入工作台账号" required autofocus>
+          <label for="password">密码</label>
+          <div class="password-field">
+            <input id="password" name="password" type="password" autocomplete="current-password" maxlength="256" placeholder="请输入密码" required>
+            <button id="toggle-password" type="button" aria-label="显示密码" aria-pressed="false">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 12S5.5 5.5 12 5.5 22 12 22 12 18.5 18.5 12 18.5 2 12 2 12Z" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.5"/></svg>
+            </button>
+          </div>
+          <p id="login-error" class="login-error" role="alert" aria-live="polite"></p>
+          <button id="login-submit" class="login-submit" type="submit"><span>登录工作台</span><span aria-hidden="true">→</span></button>
+          <p class="login-help">忘记账号或密码，请联系工作台管理员。</p>
+        </form>
+      </div>
+      <p class="login-panel-footer">伴护 · 连接每一次照护</p>
+    </section>
+  </main>
+</body>
+</html>

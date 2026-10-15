@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#176b63">
+  <title>伴护 · 护理工作台</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="#overview" aria-label="伴护工作台首页"><span class="brand-mark">伴</span><span>伴护<small>老人陪伴护理工作台</small></span></a>
+    <div class="nav-label">护理工作</div>
+    <nav aria-label="主要导航">
+      <a href="#overview" data-nav="overview"><span class="nav-icon">◫</span>工作台</a>
+      <a href="#elders" data-nav="elders"><span class="nav-icon">♧</span>老人档案</a>
+      <a href="#emotion" data-nav="emotion"><span class="nav-icon">◡</span>情绪记录</a>
+      <a href="#anomaly" data-nav="anomaly"><span class="nav-icon">!</span>异常记录<span id="nav-count" class="nav-count"></span></a>
+      <a href="#interaction" data-nav="interaction"><span class="nav-icon">▤</span>互动记录</a>
+      <a href="#maintenance" data-nav="maintenance"><span class="nav-icon">⚙</span>系统维护</a>
+    </nav>
+    <div class="sidebar-note"><span class="status-dot"></span><span id="connection-label">本机工作台</span><p>每一条观察，都有后续记录。</p></div>
+    <div class="sidebar-footer">情绪 · 异常 · 互动</div>
+  </aside>
+  <div class="workspace">
+    <header class="topbar"><div><span class="workspace-name">管理后台</span><span class="topbar-divider"></span><span id="page-name">护理工作台</span></div><div class="topbar-right"><span id="clock"></span><button id="refresh" class="icon-button" aria-label="刷新记录">↻</button><span class="user-avatar">管</span><span id="operator-name">管理员</span><button id="change-password" class="text-button" hidden>修改密码</button><button id="logout" class="text-button" hidden>退出登录</button></div></header>
+    <main id="main" tabindex="-1">
+      <div class="page-heading"><div><p class="eyebrow" id="eyebrow">查看老人资料，跟进异常与互动需求</p><h1 id="heading">护理工作台</h1></div><div class="heading-actions"><button class="button primary" id="new-elder">＋ 新建档案</button></div></div>
+      <div id="load-error" class="error-banner" role="alert" hidden></div>
+      <div id="content" aria-live="polite"><div class="loading">正在读取护理记录…</div></div>
+    </main>
+    <footer class="page-footer"><span>记录观察，连接照护</span><span id="last-updated">正在连接</span></footer>
+  </div>
+  <dialog id="elder-dialog" class="form-dialog" aria-labelledby="elder-dialog-title"><form id="elder-form"><div class="dialog-heading"><h2 id="elder-dialog-title">新建老人档案</h2><button type="button" class="icon-button" data-close="elder-dialog" aria-label="关闭">×</button></div><input type="hidden" name="elder_id"><div class="form-grid"><label class="full" id="profile-source-label">资料来源<select name="profile_source" id="elder-profile-source"></select></label><label>姓名<input name="name" required maxlength="80" autocomplete="off"></label><label>年龄<input name="age" type="number" min="0" max="120"></label><label class="full">房间或床位<input name="room" maxlength="80" placeholder="例如：201 房 / 1 床"></label><label class="full">照护备注<textarea name="notes" maxlength="2000" rows="4" placeholder="记录已确认的照护偏好与需要关注的事项"></textarea></label></div><p id="profile-source-note" class="source-note"></p><p class="form-error" role="alert"></p><div class="dialog-footer"><button type="button" class="button" data-close="elder-dialog">取消</button><button class="button primary" type="submit">保存档案</button></div></form></dialog>
+  <dialog id="event-dialog" class="event-dialog" aria-labelledby="event-dialog-title"><div class="dialog-heading"><h2 id="event-dialog-title">事件详情</h2><button class="icon-button" data-close="event-dialog" aria-label="关闭">×</button></div><div id="event-detail"></div></dialog>
+  <dialog id="password-dialog" class="form-dialog" aria-labelledby="password-dialog-title"><form id="password-form" method="post" action="/api/auth/password"><div class="dialog-heading"><h2 id="password-dialog-title">修改密码</h2><button type="button" class="icon-button" data-close="password-dialog" aria-label="关闭修改密码">×</button></div><div class="form-grid"><label class="full">当前密码<input name="current_password" type="password" autocomplete="current-password" maxlength="256" required></label><label class="full">新密码<input name="new_password" type="password" autocomplete="new-password" minlength="12" maxlength="256" placeholder="至少 12 个字符，不要求特殊符号" required></label><label class="full">再次输入新密码<input name="confirm_password" type="password" autocomplete="new-password" minlength="12" maxlength="256" required></label><p class="source-note full">可以使用好记的短语。保存后会退出登录，请使用新密码重新登录。</p></div><p class="form-error" role="alert"></p><div class="dialog-footer"><button type="button" class="button" data-close="password-dialog">取消</button><button class="button primary" type="submit">保存新密码</button></div></form></dialog>
+  <div id="toast" role="status" hidden></div>
+</body>
+</html>

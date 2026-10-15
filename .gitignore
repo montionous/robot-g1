@@ -50,6 +50,7 @@ nohup.out
 !/speech/data/init_db.py
 /speech/video_robot_audio_*/
 /care_console/runtime/
+/care_console/.auth-*
 /runs/
 
 # Build products; keep source and build configuration separately
