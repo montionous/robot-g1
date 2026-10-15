@@ -2,7 +2,7 @@
 
 ## 导入范围与入口
 
-目录为 `speech/scenarios/social_activity_support/`。本批导入 21 个 Python 文件，此前已导入 `run_g1_demo.sh` 和 `run_g1_showcase.sh`。所有业务逻辑保留原样。
+目录为 `speech/scenarios/social_activity_support/`，已导入 21 个 Python 文件、`run_g1_demo.sh` 和 `run_g1_showcase.sh`；本轮补入原有 `speech/test_social_activity_showcase.py`。所有业务逻辑和测试断言保留原样。
 
 | 入口 | 源码用途 |
 | --- | --- |
@@ -75,4 +75,8 @@ python3 speech/scenarios/social_activity_support/text_showcase_demo.py --demo-da
 
 原样例后面的“我没记住，你再完整说一遍”和“那我去参加”因此在 `wait_select` 被门禁忽略；最后结束指令仍正常结束。该偏差也已用真实分类器、控制器和源码内置 `DemoRepo` 单独复现，未修改业务逻辑或样例。
 
-尚未收到 `speech/test_social_activity_showcase.py`，本批没有执行社交活动自动断言套件。近期语义查询、真实 SQLite、报名确认/候补、工作人员通知送达、ASR/TTS、手臂动作及实机闭环均未验证。娱乐展示此前的 12 通过/3 失败结果保持独立，不因社交文字脚本退出成功而改变。
+本轮收到并明确选择运行了原有 `speech/test_social_activity_showcase.py`：**16 项实际执行，15 项通过、1 项失败、0 错误、0 跳过，退出码为 1**。唯一失败项 `test_background_speech_is_ignored` 使用上述同一句背景描述，期望 `other`，实际 `query`。没有修改断言或业务规则。
+
+套件使用原有 `FakeRepo` 内存仓库；模型测试使用原有 `StubLLM`，其余关闭模型。在拦截数据库、子进程及业务网络的条件下运行，未尝试这些调用；请求库的本地 IPv6 绑定探测单独记录并拦截。未进行全仓测试收集。
+
+近期语义查询、真实 SQLite、报名确认/候补、工作人员通知送达、ASR/TTS、手臂动作及实机闭环均未验证。娱乐展示此前的 12 通过/3 失败结果保持独立，不因社交文字脚本退出成功而改变。
