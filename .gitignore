@@ -1,0 +1,54 @@
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+venv/
+.venv*/
+env/
+
+# Local credentials (example templates may be tracked)
+.env
+.env.*
+!.env.example
+cloud.env
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Backups and generated logs
+backups/
+backup_*/
+*.bak
+*.bak_*
+*.backup
+*.backup_*
+*.log
+nohup.out
+
+# Local databases and SQLite sidecars
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+
+# Original machine's recordings, personal data and runtime output
+/speech/input/
+/speech/output/
+/speech/runtime/
+/speech/data/
+/speech/video_robot_audio_*/
+
+# Build products; keep source and build configuration separately
+/build/
+/dist/
