@@ -5,6 +5,10 @@ import sys
 import tempfile
 
 from contextlib import closing
+from importlib.util import (
+    module_from_spec,
+    spec_from_file_location,
+)
 from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import quote
@@ -12,6 +16,8 @@ from urllib.parse import quote
 
 SCENE_DIR = Path(__file__).resolve().parent
 ROOT = SCENE_DIR.parents[1]
+
+DATA_DIR = ROOT / "data"
 
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(SCENE_DIR))
@@ -31,6 +37,80 @@ CHECK_TABLES = [
     "elder_care_memory_occurrence",
     "care_memory_ingestion",
 ]
+
+
+def _load_initializer(
+    name: str,
+    path: Path,
+):
+    """Load a database initializer without importing project runtime state."""
+    spec = spec_from_file_location(name, path)
+
+    if spec is None or spec.loader is None:
+        raise RuntimeError(
+            f"无法加载测试数据库初始化脚本: {path}"
+        )
+
+    module = module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _create_seed_database(
+    database_path: Path,
+) -> None:
+    """Create the minimum isolated CARE showcase database for this test."""
+    initializers = [
+        (
+            "care_showcase_base_db",
+            DATA_DIR / "init_db.py",
+        ),
+        (
+            "care_showcase_care_db",
+            SCENE_DIR / "init_care_db.py",
+        ),
+        (
+            "care_showcase_profile_schema",
+            SCENE_DIR / "init_personal_care_profile.py",
+        ),
+        (
+            "care_showcase_profile_seed",
+            SCENE_DIR / "seed_personal_care_profile.py",
+        ),
+        (
+            "care_showcase_memory_schema",
+            SCENE_DIR / "init_care_memory.py",
+        ),
+        (
+            "care_showcase_memory_occurrence_schema",
+            SCENE_DIR / "init_care_memory_occurrence.py",
+        ),
+    ]
+
+    for name, path in initializers:
+        module = _load_initializer(name, path)
+
+        with patch.object(module, "DB_PATH", database_path):
+            module.main()
+
+
+def _copy_database(
+    source_path: Path,
+    destination_path: Path,
+) -> None:
+    """Use SQLite's backup API so the source database stays read-only."""
+    source_uri = (
+        "file:"
+        + quote(str(source_path), safe="/")
+        + "?mode=ro"
+    )
+
+    with closing(
+        RAW_CONNECT(source_uri, uri=True)
+    ) as source, closing(
+        RAW_CONNECT(str(destination_path))
+    ) as target:
+        source.backup(target)
 
 
 def counts(path):
@@ -107,11 +187,6 @@ class OfflineMemoryLLM:
 
 
 def main():
-    if not REAL_DB.is_file():
-        raise RuntimeError(
-            f"找不到原始数据库: {REAL_DB}"
-        )
-
     with tempfile.TemporaryDirectory(
         prefix="care_showcase_test_"
     ) as temp_dir:
@@ -120,25 +195,19 @@ def main():
             Path(temp_dir) / "elder_companion_test.db"
         ).resolve()
 
-        # 使用 SQLite 官方 backup API 获取一致性副本。
-        # 原始数据库只读打开。
-        source_uri = (
-            "file:"
-            + quote(str(REAL_DB), safe="/")
-            + "?mode=ro"
-        )
-
-        with closing(
-            RAW_CONNECT(source_uri, uri=True)
-        ) as source, closing(
-            RAW_CONNECT(str(TEST_DB))
-        ) as target:
-            source.backup(target)
+        if REAL_DB.is_file():
+            _copy_database(REAL_DB, TEST_DB)
+            print("数据库隔离: 已创建原始数据库的 SQLite 副本")
+        else:
+            _create_seed_database(TEST_DB)
+            print(
+                "数据库隔离: 原始数据库不存在，"
+                "已创建临时演示数据库"
+            )
 
         before = counts(TEST_DB)
 
         print("测试数据库:", TEST_DB)
-        print("数据库隔离: 已创建 SQLite 副本")
 
         # 拦截整个测试进程内的 sqlite3.connect。
         # 即使代码仍使用原始 DB_PATH，也重定向到副本。

@@ -1,1 +1,6 @@
 dashscope>=1.25.17
+fastapi>=0.110,<1
+openai>=1.0,<3
+python-multipart>=0.0.9,<1
+requests>=2.31,<3
+uvicorn>=0.29,<1

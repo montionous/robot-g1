@@ -150,6 +150,7 @@ def play_interruptible_wav(
     ready = None
     pending = None
     listener_error = None
+    final_result = None
     signalled = False
     started = time.monotonic()
     deadline = started + timeout
@@ -208,21 +209,21 @@ def play_interruptible_wav(
                 ready = next((row for row in rows if row.get("status") == "ready"), None)
             if ready is not None:
                 _validate_ready(ready, audio_path)
-            final = next((row for row in reversed(rows) if row.get("status") in
-                          {"completed", "interrupted", "failed"}), None)
-            if (process.returncode != 0 or ready is None or final is None
-                    or final.get("app_name") != ready.get("app_name")
-                    or final.get("wav_path") != audio_path
-                    or final.get("play_result") != 0 or final.get("stop_result") != 0
-                    or final.get("status") == "failed"):
+            final_result = next((row for row in reversed(rows) if row.get("status") in
+                                 {"completed", "interrupted", "failed"}), None)
+            if (process.returncode != 0 or ready is None or final_result is None
+                    or final_result.get("app_name") != ready.get("app_name")
+                    or final_result.get("wav_path") != audio_path
+                    or final_result.get("play_result") != 0 or final_result.get("stop_result") != 0
+                    or final_result.get("status") == "failed"):
                 raise RuntimeError("g1_pcm_bridge_play_or_stop_failed")
             if listener_error:
-                final["interrupt_monitor_error"] = listener_error
-            if final["status"] == "interrupted":
+                final_result["interrupt_monitor_error"] = listener_error
+            if final_result["status"] == "interrupted":
                 if pending is None:
                     raise RuntimeError("g1_pcm_bridge_unexpected_interruption")
-                final["interrupt"] = pending
-            return final
+                final_result["interrupt"] = pending
+            return final_result
         finally:
             if done is not None:
                 done.set()
@@ -239,6 +240,19 @@ def play_interruptible_wav(
                         listener.join(timeout=1.0)
                     if listener.is_alive():
                         raise RuntimeError("entertainment_listener_cleanup_failed")
+                    while True:
+                        try:
+                            report = results.get_nowait()
+                        except Empty:
+                            break
+                        if (
+                            listener_error is None
+                            and isinstance(report, dict)
+                            and report.get("error")
+                        ):
+                            listener_error = str(report["error"])
+                    if final_result is not None and listener_error:
+                        final_result["interrupt_monitor_error"] = listener_error
                     results.close()
                     results.join_thread()
                 if monitor_dir is not None:
