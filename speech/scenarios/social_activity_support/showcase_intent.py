@@ -7,7 +7,10 @@ import os
 import re
 import time
 
-import requests
+try:
+    import requests
+except ImportError:
+    requests = None
 
 from showcase_protocol import (
     ALLOWED_BY_STATE,
@@ -88,6 +91,23 @@ ACTIVITY_HINTS = [
     "书法",
     "太极",
     "活动",
+]
+
+
+SPECIFIC_ACTIVITY_QUERY_CUES = [
+    "有没有",
+    "有没",
+    "有无",
+    "是否有",
+]
+
+
+BACKGROUND_DESCRIPTION_HINTS = [
+    "听起来",
+    "看起来",
+    "挺不错",
+    "不错",
+    "很好",
 ]
 
 
@@ -329,6 +349,28 @@ def _contains_any(
     )
 
 
+def _is_specific_activity_query(
+    value,
+):
+    """Keep explicit activity questions from turning descriptions into queries."""
+    if not _contains_any(
+        value,
+        ACTIVITY_HINTS,
+    ):
+        return False
+
+    if _contains_any(
+        value,
+        SPECIFIC_ACTIVITY_QUERY_CUES,
+    ):
+        return True
+
+    if "有" in value and value.endswith(("吗", "么")):
+        return True
+
+    return value.startswith("那") and value.endswith("呢")
+
+
 def raw_rule_intent(text):
     """
     只判断语义，不考虑状态。
@@ -454,19 +496,8 @@ def raw_rule_intent(text):
         return QUERY
 
     # 常见活动的口语查询兜底。
-    # 即使云端暂时不可用，
-    # “有没有打牌的活动”这类表达仍能进入查询流程。
-    if (
-        _contains_any(
-            value,
-            ACTIVITY_HINTS,
-        )
-        and (
-            "活动" in value
-            or "有没有" in value
-            or "有没" in value
-        )
-    ):
+    # 需要明确的提问信号，不能只因出现“活动”就重置会话。
+    if _is_specific_activity_query(value):
         return QUERY
 
 
@@ -495,6 +526,10 @@ def raw_rule_intent(text):
                 "想听听",
             ],
         )
+        and not _contains_any(
+            value,
+            BACKGROUND_DESCRIPTION_HINTS,
+        )
     ):
         return SELECT
 
@@ -506,6 +541,10 @@ def raw_rule_intent(text):
             ACTIVITY_HINTS,
         )
         and "那个" in value
+        and not _contains_any(
+            value,
+            BACKGROUND_DESCRIPTION_HINTS,
+        )
     ):
         return SELECT
 
@@ -548,6 +587,11 @@ class SocialActivityIntentLLM:
         model=DEFAULT_MODEL,
         timeout=10,
     ):
+        if requests is None:
+            raise RuntimeError(
+                "缺少 requests，无法启用社交活动意图 LLM"
+            )
+
         api_key = os.getenv(
             "DASHSCOPE_API_KEY"
         )

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -221,6 +222,54 @@ external_dial_requested=false
                 "external_dial_requested"
             ]
         )
+
+    @patch(
+        "call_backend.subprocess.run"
+    )
+    def test_real_preflight_passes_uncreated_output_directory(
+        self,
+        run,
+    ):
+        run.return_value = (
+            FakeCompleted(
+                stdout=(
+                    '{"operation_state":"preflight_ok",'
+                    '"external_dial_requested":false}'
+                )
+            )
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            backend = ContactCallBackend(
+                mode="real",
+                phone_url="http://10.0.0.2:8765",
+            )
+
+            with patch(
+                "call_backend.REPO_ROOT",
+                Path(directory),
+            ):
+                result = backend._run_phone_client(
+                    preflight=True,
+                )
+
+            output_dir = Path(
+                result["output_dir"]
+            )
+
+            self.assertFalse(
+                output_dir.exists()
+            )
+
+            command = run.call_args.args[0]
+
+            self.assertEqual(
+                command[
+                    command.index("--output-dir")
+                    + 1
+                ],
+                str(output_dir),
+            )
 
     @patch(
         "call_backend.subprocess.run"

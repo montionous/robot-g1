@@ -965,6 +965,7 @@ def perform_mock_call(
                 elder_turn_seconds,
             family_turn_timeout=
                 family_turn_timeout,
+            announce_decisions=False,
         )
 
     if status == "rejected":

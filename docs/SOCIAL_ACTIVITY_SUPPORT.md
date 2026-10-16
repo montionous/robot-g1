@@ -2,7 +2,7 @@
 
 ## 导入范围与入口
 
-目录为 `speech/scenarios/social_activity_support/`，已导入 21 个 Python 文件、`run_g1_demo.sh` 和 `run_g1_showcase.sh`；本轮补入原有 `speech/test_social_activity_showcase.py`。所有业务逻辑和测试断言保留原样。
+目录为 `speech/scenarios/social_activity_support/`，已导入 21 个 Python 文件、`run_g1_demo.sh` 和 `run_g1_showcase.sh`；本轮补入原有 `speech/test_social_activity_showcase.py`，并修复了展示版规则对背景描述的误分类。
 
 | 入口 | 源码用途 |
 | --- | --- |
@@ -61,9 +61,9 @@
 python3 speech/scenarios/social_activity_support/text_showcase_demo.py --demo-data --scripted --no-llm
 ```
 
-原脚本 12 轮输入运行到 `done`，退出码为 0，没有访问 SQLite、云模型、音频或机器人。查询、选择及部分详情问答有实际输出，但中途发生下述偏差，不能认定完整参加流程通过。
+原脚本 12 轮输入运行到 `done`，退出码为 0，没有访问 SQLite、云模型、音频或机器人。初次导入时其中一条背景描述误触发查询；该规则问题已在本轮修复并加入回归测试。
 
-## 已复现的规则流程偏差
+## 已修复的背景描述误分类
 
 按原样例输入：
 
@@ -71,11 +71,11 @@ python3 speech/scenarios/social_activity_support/text_showcase_demo.py --demo-da
 2. “我想了解一下集体唱歌。”：`select`，进入 `selected_activity`。
 3. “这个活动听起来挺不错的。”：实际返回 `query`，重新推荐并退回 `wait_select`。
 
-第 3 句在脚本注释和模型提示词中被定义为应忽略的背景描述。当前 `ACTIVITY_HINTS` 含泛词“活动”，而查询兜底条件同时检查包含该提示词及“活动”，导致这句描述命中查询。分类函数优先返回明确的本地规则结果，这条路径不会再由模型修正。
+第 3 句在脚本注释和模型提示词中被定义为应忽略的背景描述。初次导入时，`ACTIVITY_HINTS` 含泛词“活动”，而查询兜底条件仅凭该提示词就将其判为查询。分类函数优先返回明确的本地规则结果，因此模型无法修正这条路径。
 
-原样例后面的“我没记住，你再完整说一遍”和“那我去参加”因此在 `wait_select` 被门禁忽略；最后结束指令仍正常结束。该偏差也已用真实分类器、控制器和源码内置 `DemoRepo` 单独复现，未修改业务逻辑或样例。
+现在该兜底规则要求“有没有”“有没”“有无”“是否有”、`有…吗/么` 或“那…呢”这类明确问法；“有没有唱歌活动”和“那唱歌呢”仍进入查询，“这个活动听起来挺不错的”返回 `other`。这样不会因背景描述重置已选活动上下文。
 
-本轮收到并明确选择运行了原有 `speech/test_social_activity_showcase.py`：**16 项实际执行，15 项通过、1 项失败、0 错误、0 跳过，退出码为 1**。唯一失败项 `test_background_speech_is_ignored` 使用上述同一句背景描述，期望 `other`，实际 `query`。没有修改断言或业务规则。
+本轮运行 `speech/test_social_activity_showcase.py`：**17 项实际执行，17 项通过、0 失败、0 错误、0 跳过**。原有 `test_background_speech_is_ignored` 现通过，新增测试覆盖两种具体活动提问，避免把正常查询一起拦截。当前云环境没有安装 `requests`；规则分类现在可正常导入和运行，只有构造云意图模型时才会给出缺少依赖的明确错误。
 
 套件使用原有 `FakeRepo` 内存仓库；模型测试使用原有 `StubLLM`，其余关闭模型。在拦截数据库、子进程及业务网络的条件下运行，未尝试这些调用；请求库的本地 IPv6 绑定探测单独记录并拦截。未进行全仓测试收集。
 

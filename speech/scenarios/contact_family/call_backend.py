@@ -6,6 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 from datetime import datetime
+from uuid import uuid4
 
 
 SCENE_DIR = Path(__file__).resolve().parent
@@ -396,19 +397,16 @@ class ContactCallBackend:
             "%Y%m%d-%H%M%S"
         )
 
-        path = (
+        # g1_phone_dial owns the atomic output-directory creation and rejects
+        # an existing directory.  Keep this path uncreated until that client
+        # starts so its result receipt can be written on both success and
+        # handled DialError paths.
+        return (
             REPO_ROOT
             / "runs"
             / "contact-family-phone"
-            / f"{prefix}-{stamp}-{os.getpid()}"
+            / f"{prefix}-{stamp}-{os.getpid()}-{uuid4().hex}"
         )
-
-        path.mkdir(
-            parents=True,
-            exist_ok=True,
-        )
-
-        return path
 
 
     def _require_real_config(self):

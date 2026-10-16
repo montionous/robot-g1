@@ -37,6 +37,7 @@ from showcase_protocol import (
     ASK_LOCATION,
     DONE,
     OTHER,
+    QUERY,
     SELECTED_ACTIVITY,
     WAIT_CONFIRM,
     WAIT_END,
@@ -472,6 +473,16 @@ class ShowcaseTest(
             "明天下午有什么活动？",
         )
 
+        initial_intent = self.classify(
+            controller,
+            "这个活动听起来挺不错的。",
+        )
+
+        self.assertEqual(
+            initial_intent["intent"],
+            OTHER,
+        )
+
         controller.handle(
             "select",
             "唱歌那个",
@@ -869,6 +880,28 @@ class ShowcaseTest(
         self.assertIsNone(
             result["reply"]
         )
+
+    def test_specific_activity_questions_remain_queries(self):
+        controller = (
+            self.make_controller()
+        )
+
+        for text in (
+            "有没有唱歌活动？",
+            "那唱歌呢？",
+        ):
+            with self.subTest(
+                text=text,
+            ):
+                intent = self.classify(
+                    controller,
+                    text,
+                )
+
+                self.assertEqual(
+                    intent["intent"],
+                    QUERY,
+                )
 
     def test_high_confidence_llm_fallback(self):
         controller = (
