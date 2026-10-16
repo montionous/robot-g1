@@ -31,9 +31,9 @@ bridge target 明确列出的本地源码、相邻头文件和核心测试源码
 
 头文件静态确认的 WAV 条件为 RIFF/WAVE、PCM format 1、单声道、16 kHz、16 位、`block_align=2`、`byte_rate=32000`、非空 data payload，且实际 PCM 数据不超过 32 MiB。实现允许 streaming 风格的超大 RIFF/data 声明，但实际 payload 仍受该字节上限约束。
 
-当前实现**没有 15 秒时长上限**。在 32,000 B/s 下，32 MiB 约为 1048.6 秒；因此保留的上游说明中“最多 15 秒”的表述不能作为当前源码已验证的限制。新收到的历史情绪 wrapper/说明也有同类表述，而 `emotion_dialogue.py` 按实际音频时长计算等待时间；不能把这些文字当成 bridge 的强制限制。`PlayCompanionPcm` 由 bridge 以 96,000 字节（约 3 秒）分块调用，每次等待最多 20 ms 后检查取消；零字节分块会在调用任何回调前拒绝，避免泛型调用方进入无限循环；正常、取消和播放失败的路径都会调用停止回调。
+当前实现**没有 15 秒时长上限**。在 32,000 B/s 下，32 MiB 约为 1048.6 秒；因此保留的上游说明中“最多 15 秒”的表述不能作为当前源码已验证的限制。新收到的历史情绪 wrapper/说明也有同类表述，而 `emotion_dialogue.py` 按实际音频时长计算等待时间；不能把这些文字当成 bridge 的强制限制。`PlayCompanionPcm` 由 bridge 以 96,000 字节（约 3 秒）分块调用，每次等待最多 20 ms 后检查取消；正常、取消和播放失败的路径都会调用停止回调。
 
-`tests/g1_companion_pcm_test.cpp` 是只使用内存回调与 `assert` 的核心测试源码。它覆盖分块、等待、取消、零字节分块拒绝、播放/停止错误与异常清理，以及有效/无效 WAV、streaming 声明和 32 MiB 上限；没有覆盖 CLI JSON、`--dry-run` 或 Unitree 客户端。本轮未编译或运行该测试。
+`tests/g1_companion_pcm_test.cpp` 是只使用内存回调与 `assert` 的核心测试源码。它覆盖分块、等待、取消、播放/停止错误与异常清理，以及有效/无效 WAV、streaming 声明和 32 MiB 上限；没有覆盖 CLI JSON、`--dry-run` 或 Unitree 客户端。本轮未编译或运行该测试。
 
 ## 外部与未收到的依赖
 

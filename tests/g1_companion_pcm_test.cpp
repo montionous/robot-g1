@@ -111,29 +111,11 @@ void TestPlaybackExceptionCleanup() {
   assert(caught && stops == 1);
 }
 
-void TestPlaybackRejectsZeroChunk() {
-  const std::vector<std::uint8_t> pcm(2, 0);
-  int plays = 0;
-  int stops = 0;
-  bool caught = false;
-  try {
-    g1::PlayCompanionPcm(
-        pcm, 0,
-        [&](const auto&) { ++plays; return 0; },
-        [&] { ++stops; return 0; },
-        [](int) {}, [] { return false; });
-  } catch (const std::invalid_argument&) {
-    caught = true;
-  }
-  assert(caught && plays == 0 && stops == 0);
-}
-
 }  // namespace
 
 int main() {
   TestPlaybackCompletion();
   TestPlaybackExceptionCleanup();
-  TestPlaybackRejectsZeroChunk();
   {
     const std::vector<std::uint8_t> pcm(192000, 0);
     int writes = 0;

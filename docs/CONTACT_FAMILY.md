@@ -91,9 +91,9 @@ URL 校验要求 `http`、私有或回环 IP 字面量和显式端口，拒绝�
 
 独立 client 使用 `g1_android_phone_dial_v1` schema，后端示例中的编排器合同为 `g1_contact_family_call_v1`；当前后端解析器提取字段但不强制校验 schema，不能将两者视为已经核对完成的同一个协议。
 
-当前主语音入口的 `ContactCallBackend(mode="real")` 直连路径会生成一个唯一但尚未创建的输出目录，并把目录创建权交给 Android client 的 `_write_result()`。这样 client 可以以 `mkdir(..., exist_ok=False)` 原子创建自己的结果目录，不再因调用方预创建目录而触发 `FileExistsError`。离线后端测试会 mock 子进程并确认传入目录在调用前不存在。该直连路径仍绕过编排器的语音/PCM 预检、现场二次语音确认和 token 文件权限检查。
+静态核对发现输出目录约定冲突仍位于当前主语音入口的 `ContactCallBackend(mode="real")` 直连路径：它的 `_new_output_dir()` 先创建本次输出目录，随后 client 的 `_write_result()` 再使用 `mkdir(..., exist_ok=False)` 创建同一路径。两份当前源码直接接线时会发生 `FileExistsError`；client 的 `main()` 只捕获 `DialError`，不处理该异常。该直连路径还绕过编排器的语音/PCM 预检、现场二次语音确认和 token 文件权限检查。
 
-client 在 HTTP 操作后写结果，因此真实预检可能已经请求 `/health` 才写盘失败；单独调用真实拨号路径时，也可能已发送 `/dial` 请求再报错。正常语音入口会先准备，准备失败会停止后续拨号。本轮没有请求手机或进行端到端复现。
+client 在 HTTP 操作后写结果，因此真实预检可能已经请求 `/health` 才写盘失败；单独调用真实拨号路径时，也可能已发送 `/dial` 请求再报错。正常语音入口会先准备，准备失败会停止后续拨号。上述冲突由源码静态确认，本轮没有请求手机或进行端到端复现，也没有修复原逻辑。
 
 失败回执还有限制：client 的 `DialError` 路径以 `arguments.confirmed` 填写 `external_dial_requested`，即使 URL 校验失败、尚未发送 HTTP，也可能为 `True`；`main()` 的错误 stdout 又不包含这个字段。编排器也会在调用电话 client 前把内部 `dial_requested` 设为真，因此其失败结果表示已开始尝试拨号流程，不能单独证明 HTTP 请求实际发出。原有后端测试 mock 整个 client 调用，未覆盖这些接线问题。
 
@@ -107,7 +107,7 @@ client 在 HTTP 操作后写结果，因此真实预检可能已经请求 `/heal
 
 `g1_voice_demo.py` 中仍保留 `perform_mock_call()` 和 `run_simple_voice_call()`：可创建网页来电，播放铃声，调用 `g1_audio/g1_mic_recorder.py` 录制老人语音并上传，再播放家属回复。当前 `run_scene()` 没有调用这些函数，启动 mock server 不会自动让主入口使用网页通话。
 
-保留路径的 `perform_mock_call()` 在已接听分支现在显式以 `announce_decisions=False` 调用 `run_simple_voice_call()`，不会再因缺少该关键字参数触发 `TypeError`。当前 `safe_stub`、`real` 主流程仍不走此分支。
+保留路径还有一处静态可见的调用缺口：`perform_mock_call()` 在已接听分支调用 `run_simple_voice_call()` 时，没有提供其必需的 `announce_decisions` 关键字参数。该路径若直接启用会触发 `TypeError`，本轮保留原样。当前 `safe_stub`、`real` 主流程不走此分支。
 
 `--call-result` 仅为旧启动脚本保留兼容，源码明确不再控制呼叫结果。`--followup-seconds`、`--call-timeout`、`--call-rounds`、`--elder-turn-seconds`、`--family-turn-timeout` 仍被接收并传入 `run_scene()`，但当前主流程未使用这些参数；不能据此宣称当前入口已支持网页多轮通话。
 
@@ -154,12 +154,12 @@ SQLite 连接使用普通可写连接。数据库文件不存在且父目录存�
 
 | 原测试文件 | 实际结果 | 覆盖内容 |
 | --- | --- | --- |
-| `test_contact_family_call_backend.py` | 8 项全部通过 | 非法模式、JSON/旧文本解析、`dry_run` 准备/拨号、`real` 底层 client 参数转发、未创建输出目录 |
+| `test_contact_family_call_backend.py` | 7 项全部通过 | 非法模式、JSON/旧文本解析、`dry_run` 准备/拨号、`real` 底层 client 参数转发 |
 | `test_contact_family_dial_authorization.py` | 11 项全部通过 | 精确授权、空格标点归一化、泛化肯定/扩展句拒绝、取消和授权状态转换 |
 
-最新合计 19 项实际执行，19 通过、0 失败、0 错误、0 跳过，合并执行退出码为 0。前批曾因缺少 `scripts/g1_call_owner_once.sh`，使 `test_dry_run_prepare` 抛出 `CallBackendError`；本轮导入用户提供的真实源码后，文件存在性条件已满足，后续子进程仍由原测试 mock。本轮没有执行 Shell 或缺失的编排器。
+最新合计 18 项实际执行，18 通过、0 失败、0 错误、0 跳过，合并执行退出码为 0。前批曾因缺少 `scripts/g1_call_owner_once.sh`，使 `test_dry_run_prepare` 抛出 `CallBackendError`；本轮导入用户提供的真实源码后，文件存在性条件已满足，后续子进程仍由原测试 mock。本轮没有执行 Shell 或缺失的编排器，也没有修改测试断言或业务代码。
 
-原有两个 `real` 用例 mock 整个 `_run_phone_client`，只验证参数转发与结果处理；新增输出目录用例直接调用该内部接线，但 mock `subprocess.run`，因此不读取 token、不访问手机。授权状态测试手动放入合成联系人并设置初始状态，电话字段为 `placeholder`，没有查询真实联系人。受控执行未尝试数据库连接、业务网络或子进程调用。
+两个 `real` 用例 mock 整个 `_run_phone_client`，只验证参数转发与结果处理，不读取 token、不访问手机。授权状态测试手动放入合成联系人并设置初始状态，电话字段为 `placeholder`，没有查询真实联系人。受控执行未尝试数据库连接、业务网络或子进程调用。
 
 这些用例没有覆盖 `safe_stub`、owner 联系人绑定、语音入口的“绑定—准备—授权—拨号”整体接线，或真实 client 的命令、token、异常和超时行为。后端类自身仍不验证会话授权，不能由这些单元测试推定整条电话链已经完成验收。
 

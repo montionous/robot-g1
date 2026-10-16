@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <cstdint>
 #include <optional>
-#include <stdexcept>
 #include <vector>
 
 namespace g1 {
@@ -35,14 +34,11 @@ template <typename Play, typename Stop, typename Sleep, typename Cancelled>
 CompanionPcmPlaybackResult PlayCompanionPcm(
     const std::vector<std::uint8_t>& pcm, std::size_t chunk_bytes,
     Play play, Stop stop, Sleep sleep, Cancelled cancelled) {
-  if (chunk_bytes == 0) {
-    throw std::invalid_argument("chunk_bytes must be non-zero");
-  }
   CompanionPcmPlaybackResult result;
   try {
-    for (std::size_t offset = 0; offset < pcm.size();) {
+    for (std::size_t offset = 0; offset < pcm.size(); offset += chunk_bytes) {
       if (cancelled()) { result.interrupted = true; break; }
-      const auto end = offset + std::min(chunk_bytes, pcm.size() - offset);
+      const auto end = std::min(offset + chunk_bytes, pcm.size());
       result.play_result = play(std::vector<std::uint8_t>(
           pcm.begin() + static_cast<std::ptrdiff_t>(offset),
           pcm.begin() + static_cast<std::ptrdiff_t>(end)));
@@ -56,7 +52,6 @@ CompanionPcmPlaybackResult PlayCompanionPcm(
         remaining -= interval;
       }
       if (result.interrupted) break;
-      offset = end;
     }
   } catch (...) {
     stop();

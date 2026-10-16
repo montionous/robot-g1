@@ -2,7 +2,7 @@
 
 ## 当前导入范围
 
-目录为 `speech/scenarios/companion_entertainment/`。已导入 15 个 Python 文件、6 条目录项的 `content_catalog.json` 和 3 条固定播报稿的 `news_scripts.json`，以及 `run_g1_demo.sh`。公共 `speech/robot_actions/` 两个模块和 `speech/test_companion_entertainment_showcase.py` 也已补齐。未导入媒体、备份或运行日志；展示版分类门禁已按固定流程补强。
+目录为 `speech/scenarios/companion_entertainment/`。已导入 15 个 Python 文件、6 条目录项的 `content_catalog.json` 和 3 条固定播报稿的 `news_scripts.json`，以及 `run_g1_demo.sh`。公共 `speech/robot_actions/` 两个模块和 `speech/test_companion_entertainment_showcase.py` 也已补齐。保留原目录及程序逻辑，未导入媒体、备份或运行日志。
 
 新闻稿按用户提供的项目素材保存，不属于联网新闻采集或本轮事实核验结果。现用代码与另一套目录实现分别记录，未据文件名擅自删除或归档代码。
 
@@ -14,7 +14,7 @@
 | 启动脚本 | `run_g1_demo.sh` | 本批没有专用启动脚本，实际命令待补 |
 | 控制器 | `EntertainmentController` | `ShowcaseController`，复用普通控制器执行媒体操作 |
 | 交互范围 | 类别播放、作品搜索、下一条、继续、停止 | 固定顺序：音乐第一首 → 音乐第二首 → 新闻 → 戏曲 → 结束 |
-| 指定作品 | 普通控制器可搜索 | 固定展示流程中分类为 `other`，不打断既定顺序 |
+| 指定作品 | 普通控制器可搜索 | 分类器可识别，但状态机未授权执行 |
 | 共享需求写入 | 默认允许，`--no-need-write` 可关闭 | 默认不写，`--record-elder-needs` 可开启 |
 | 公共会话日志 | 接入 `companion_recording` | 本批入口未接入该录制模块 |
 
@@ -24,7 +24,7 @@
 
 普通版支持普通话或陕西话；比赛版的互动使用陕西话、决策播报使用普通话。普通版的 `--request-seconds`、`--control-seconds` 在函数内被丢弃，仅保留参数兼容；实际滚动 ASR 配置为 4.5 秒窗口、0.5 秒步长、2 个 worker、12 秒缓冲。比赛版使用 `--listen-seconds` 设置窗口，默认 4.5 秒，状态超时默认 60 秒。
 
-二者优先使用模型进行意图识别，调用不可用时有规则回退；模型低置信结果会忽略。比赛版将模型和规则结果先收敛到当前状态允许的固定流程，控制器再做第二层门禁，因此“提前换新闻”“新闻时下一首”“指定秦腔”等输入会静默忽略。比赛版还提供 `--no-llm`，该参数只影响意图分类，不关闭 ASR/TTS 或机器人连接。当前代码在合法操作前停止 ASR，反馈与启动媒体后重建识别器。
+二者优先使用模型进行意图识别，调用不可用时有规则回退；模型低置信结果会忽略。比赛版还提供 `--no-llm`，该参数只影响意图分类，不关闭 ASR/TTS 或机器人连接。当前代码在合法操作前停止 ASR，反馈与启动媒体后重建识别器。
 
 本批未包含四场景统一路由；娱乐入口处理媒体类别切换及当前场景结束，没有自动启动照护、社交或联系家属的调度链。
 
@@ -82,7 +82,7 @@ content/opera/
 
 - 15 个 Python 文件通过 Python 3.10 语法解析；导入内容与附件一致，仅统一文本换行。
 - 两份 JSON 可解析，分别检查 6 个唯一目录 ID 和 3 个唯一新闻稿 ID，未检查新闻事实。
-- 当前云环境未安装 `requests`；展示分类模块只在实际构造云 LLM 时要求它，因此规则模式和自动测试可正常运行。`g1_media_player` 导入会创建忽略范围内的运行目录；其他业务函数未执行。
+- 使用前批临时 `requests` 依赖，12 个控制与媒体模块导入成功。`g1_media_player` 导入会创建忽略范围内的运行目录；其他业务函数未执行。
 - 两个 G1 入口前批均因缺失 `robot_actions` 受阻。本批导入真实动作包后，两入口的 `--help` 均正常退出；没有启动场景或实机流程。
 - 已运行原有 `entertainment_intent.py` 的 14 个打印样例，以及 `text_demo.py` 的 5 轮输入：无聊、音乐、点播、下一条、停止。程序完成，依次返回 `ask_category`、`empty`、`not_found`、`empty`、`stop`，并正常结束。
 
@@ -90,8 +90,16 @@ content/opera/
 
 ## 展示自动测试的实际结果
 
-本轮明确运行 `test_companion_entertainment_showcase`，没有对全仓库做自动发现。**15 项全部通过，0 失败、0 错误、0 跳过。**
+本批使用临时 `requests` 依赖，明确选择 `test_companion_entertainment_showcase` 运行，没有对全仓库做自动发现。15 项原有测试全部执行：12 项通过、3 项失败、0 错误、0 跳过，退出码为 1。两项纯状态机测试均通过；源码和断言未修改。
 
-初次导入时，三项测试发现分类器会输出当前状态不允许的 `switch_news`、`next_music` 或 `specific_media_request`，再由控制器拒绝。现在模型只接收当前状态允许的标签，规则/模型结果都会在分类层做状态门禁，非法结果记录为 `raw_intent` 并返回 `other`；`ShowcaseController.handle()` 继续在执行前重复校验。这样既保持固定演示顺序，也避免日志将被忽略的输入误写为可执行意图。
+| 失败测试 | 测试期望分类 | 当前实际分类 |
+| --- | --- | --- |
+| `test_news_cannot_skip_next` | `other` | `switch_news` |
+| `test_next_during_news_ignored` | `other` | `next_music` |
+| `test_qinqiang_is_ignored` | `other` | `specific_media_request` |
 
-测试使用原有 `FakeLLM` 与规则，没有创建真实云模型，也没有发起数据库、媒体、子进程或机器人动作调用。声音质量、实际打断、动作、媒体播放及比赛完整闭环均未验证。
+`demo_intent.py` 的当前实现和注释将语义识别与状态授权分开：高置信模型结果先返回，是否允许执行交给 `ShowcaseController.handle()`。上述测试则在分类层断言结果必须为 `other`，两者约定不一致。
+
+针对三例补做纯逻辑诊断，将实际分类结果交给对应状态的真实控制器，均得到 `ignore` 且状态保持不变。这说明这三例在已检查的状态机路径中仍被拒绝，不等于原测试通过，也不能替代实机验证。后续修改需统一测试与实现约定，本次迁移只记录差异。
+
+测试和诊断使用原有 `FakeLLM` 与规则，没有创建真实云模型，也没有发起数据库、媒体、子进程或机器人动作调用。声音质量、实际打断、动作、媒体播放及比赛完整闭环均未验证。

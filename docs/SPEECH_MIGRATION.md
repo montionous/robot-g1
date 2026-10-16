@@ -22,11 +22,11 @@
 - G1 音频组件：`speech/g1_audio/` 下 6 个 Python 文件，含单次/连续录音、滚动 ASR、播放封装和娱乐打断。
 - 照护咨询：`speech/scenarios/care_consultation_support/` 下 25 个 Python 文件和含 35 条知识卡的 `care_knowledge.json`。两份同名源码附件内容相同，只导入一次。
 - 娱乐陪伴：`speech/scenarios/companion_entertainment/` 下 15 个 Python 文件，以及用户提供的 `content_catalog.json`、`news_scripts.json`；未导入音频素材。
-- 娱乐展示验收：`speech/test_companion_entertainment_showcase.py`，包含 15 项分类与固定状态机 unittest，均已通过。
+- 娱乐展示验收：`speech/test_companion_entertainment_showcase.py`，包含 15 项原有 unittest，保持断言原样。
 - 社交活动：`speech/scenarios/social_activity_support/` 下 21 个 Python 文件，包含普通版、展示版、日程脚本和三个 `video_baseline` 文件，全部保留原路径。
-- 社交展示验收：`speech/test_social_activity_showcase.py`，包含原有用例及背景描述/具体活动查询的规则回归用例。
+- 社交展示验收：`speech/test_social_activity_showcase.py`，包含 16 项原有 unittest，保持断言原样。
 - 联系家属：`speech/scenarios/contact_family/` 下 11 个 Python 文件，包含语音/文字入口、电话后端、联系人逻辑与数据库访问、网页模拟通话服务和 `test_db.py`。
-- 联系家属验收：`speech/test_contact_family_call_backend.py`、`speech/test_contact_family_dial_authorization.py`，分别包含 8 项后端测试和 11 项拨号授权测试，覆盖未创建输出目录的 real-client 接线。
+- 联系家属验收：`speech/test_contact_family_call_backend.py`、`speech/test_contact_family_dial_authorization.py`，分别包含 7 项后端测试和 11 项拨号授权测试，保持原有 mock 和断言。
 - 项目根电话脚本：`scripts/g1_call_owner_once.sh`、`scripts/g1_contact_family_call.py`、`scripts/g1_phone_dial.py`，分别为 Shell 入口、G1/电话编排器和 Android HTTP 拨号 client。
 - 语音服务启动及会话配置脚本：`speech/run_server.sh`、`speech/companion_recording_env.sh`。
 - 四场景启动脚本：下表中的七个脚本。
@@ -175,19 +175,19 @@
 
 已尝试 `python3 speech/scenarios/care_consultation_support/test_showcase_offline_chain.py`，退出码为 1，原因是前置检查找不到 `speech/data/elder_companion.db`；5 段场景验收均未执行。基础初始化源码现已导入，但为避免在仓库创建数据文件，没有按默认路径执行；完整照护链还需要需求、会话、记忆和个人档案等表及种子。因此没有重复运行同一个会在前置检查停止的命令。
 
-娱乐陪伴的 12 个控制与媒体模块导入通过；两个语音入口前批因缺 `robot_actions` 受阻，本批补齐真实动作模块后，分别执行 `--help` 加载并退出成功。当前云环境没有 `requests`，展示分类模块只在启用云 LLM 时要求该依赖，所以规则模式仍可导入和测试。新闻音频生成脚本只做静态检查，未导入或执行。前批已运行原有规则脚本的 14 个样例及文字入口的 5 轮输入；媒体为空时返回 `empty`/`not_found`，停止指令正常结束，未验证实际播放。
+娱乐陪伴的 12 个控制与媒体模块导入通过；两个语音入口前批因缺 `robot_actions` 受阻，本批补齐真实动作模块后，分别执行 `--help` 加载并退出成功。新闻音频生成脚本只做静态检查，未导入或执行。前批已运行原有规则脚本的 14 个样例及文字入口的 5 轮输入；媒体为空时返回 `empty`/`not_found`，停止指令正常结束，未验证实际播放。
 
-本轮执行 `test_companion_entertainment_showcase`：15 项实际执行，15 项通过、0 失败、0 错误、0 跳过。展示分类入口现按当前状态收敛模型和规则结果，固定流程外的输入返回 `other`；控制器仍保留执行前状态门禁。测试只使用内存 `FakeLLM` 和规则，没有业务网络、数据库、媒体、子进程或机器人动作调用。
+本批明确选择原有 `test_companion_entertainment_showcase` 套件运行，15 项实际执行：12 项通过、3 项失败、0 错误、0 跳过，测试退出码为 1。三项失败是分类结果与测试期望不同，详见娱乐模块文档；随后逐例核对，状态机均返回 `ignore` 且状态未改变。这些诊断不替代原测试，也没有把该套件记为通过。业务源码和测试断言均保持原样。
 
-社交活动的 21 个模块导入通过，普通语音、展示语音和文字展示入口的 `--help` 均正常退出。初次导入时，`text_showcase_demo.py --demo-data --scripted --no-llm` 的背景描述会误触发查询、打断已选活动上下文；本轮将具体活动查询限定为显式问法，背景描述现会保持 `other`，并保留正常“有没有唱歌活动”“那唱歌呢”查询。
+社交活动的 21 个模块导入通过，普通语音、展示语音和文字展示入口的 `--help` 均正常退出。原有 `text_showcase_demo.py --demo-data --scripted --no-llm` 的 12 轮内存样例执行到 `done`，没有访问 SQLite、云模型或机器人，但复现了背景描述误触发查询、打断已选活动上下文的问题。后续复述/参加未完成，不能将脚本退出码 0 视为完整功能验收通过；细节及复现路径已记录，源码未修改。
 
-本轮执行 `test_social_activity_showcase`：17 项实际执行，17 项通过、0 失败、0 错误、0 跳过。`test_background_speech_is_ignored` 现覆盖修复后的背景描述处理，新增回归测试保留具体活动的显式问法。当前云环境没有安装 `requests`，所以规则分类改为仅在启用云 LLM 时要求该依赖；套件使用内存仓库及模型 stub，没有业务网络、数据库或子进程调用。
+本轮明确选择新增的原有 `test_social_activity_showcase` 套件，16 项实际执行：15 项通过、1 项失败、0 错误、0 跳过，退出码为 1。失败项 `test_background_speech_is_ignored` 正式覆盖了同一个背景描述问题：期望 `other`，实际 `query`。套件使用原有内存仓库及模型 stub，没有业务网络、数据库或子进程调用；原始测试和业务代码未改动。
 
 联系家属的 10 个模块在拦截数据库、业务网络和子进程调用的条件下真实导入通过，三个演示入口的 `--help` 正常退出。请求库的本地 IPv6 探测单独拦截；没有业务调用尝试。`mock_call_server` 导入创建了忽略目录 `speech/runtime/mock_calls/`，未启动监听。`test_db.py` 顶层会查库并打印完整老人/联系人，因此只做语法和源码一致性检查，不导入或执行，也未使用全仓自动测试收集。没有创建仓库中的老人数据库。
 
-前批在 Python 3.12.14 下明确选择两份联系家属原有 unittest，18 项实际执行：17 项通过、0 断言失败、1 错误、0 跳过，合并执行退出码为 1。其中 `test_dry_run_prepare` 在检查根目录 `scripts/g1_call_owner_once.sh` 时因文件缺失抛出 `CallBackendError`。本批导入用户提供的真实 Shell 源码后，重跑同样两份原套件：18 项全部通过、0 失败、0 错误、0 跳过，退出码为 0。当前优化新增未创建输出目录的后端回归用例后，联系家属两套测试合计为 19 项，全部通过。文件存在性条件已满足，`subprocess.run` 仍由测试 mock，并未执行 Shell 或编排器。
+前批在 Python 3.12.14 下明确选择两份联系家属原有 unittest，18 项实际执行：17 项通过、0 断言失败、1 错误、0 跳过，合并执行退出码为 1。其中 `test_dry_run_prepare` 在检查根目录 `scripts/g1_call_owner_once.sh` 时因文件缺失抛出 `CallBackendError`。本批导入用户提供的真实 Shell 源码后，重跑同样两份原套件：18 项全部通过、0 失败、0 错误、0 跳过，退出码为 0。文件存在性条件已满足，但 `subprocess.run` 仍由原测试 mock，并未执行 Shell 或缺失的编排器。没有修改测试或业务逻辑。
 
-两个原有真实模式后端用例使用 `_run_phone_client` mock；新增输出目录用例 mock `subprocess.run`。授权状态用例使用原有合成联系人，电话字段为占位文本。审计未发现数据库、业务网络或子进程调用尝试，未读取电话 token 或创建老人数据库。测试尚未覆盖 `safe_stub`、owner 绑定、语音入口整条授权调用链和 Android client 的实际行为。
+两个真实模式后端用例使用原有 `_run_phone_client` mock；授权状态用例使用原有合成联系人，电话字段为占位文本。审计未发现数据库、业务网络或子进程调用尝试，未读取电话 token 或创建老人数据库。测试尚未覆盖 `safe_stub`、owner 绑定、语音入口整条授权调用链和 Android client 的实际行为。
 
 本批将 `init_db.py` 的 `DB_PATH` 临时指向独立 SQLite 文件，连续运行两次后确认三张表、1 名示例老人和 2 名联系人均未重复写入；`contact_family/db_access.py` 的联系人别名查询、通话日志写入和读取均可在同一临时库中工作。临时连接中无效外键写入触发 `IntegrityError`。审计没有发现业务网络或子进程调用，且没有在仓库创建数据库文件。
 
