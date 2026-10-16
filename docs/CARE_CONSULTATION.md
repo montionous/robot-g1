@@ -84,7 +84,7 @@ G1 入口调用 `finalize_care_session()` 收尾；API 和文本入口当前只�
 
 `care_memory_ingestion` 提取记录表由 `care_memory_persistence.init_memory_persistence()` 在运行时创建。单独执行 `init_care_db.py` 不足以满足 `care_db.create_session()` 所需的列和完整运行结构。本轮没有执行初始化或种子脚本；后续在独立匿名测试库核对初始化顺序，不直接修改机器人原库。
 
-公共语音服务和 G1 PCM bridge 等前批次记录的依赖仍需补齐。`care_console.link` 源码已收到：它只连接本机工作台，并在普通 G1 场景启动前登记本轮交互日志；本轮没有启动工作台、创建其数据库或连接真实日志。云模型从环境读取现有 DashScope 配置，未上传密钥。
+公共语音服务和 G1 PCM bridge 等前批次记录的依赖仍需补齐。bridge 已收到主程序与上游构建清单的部分源码，但缺直接头文件、核心测试和完整 C++ 工程，尚不能构建或播放，详见 [G1 PCM bridge 说明](PCM_BRIDGE.md)。`care_console.link` 源码已收到：它只连接本机工作台，并在普通 G1 场景启动前登记本轮交互日志；本轮没有启动工作台、创建其数据库或连接真实日志。云模型从环境读取现有 DashScope 配置，未上传密钥。
 
 ## 本轮验证结果
 

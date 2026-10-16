@@ -74,7 +74,7 @@ content/opera/
 
 - Unitree SDK、DDS/设备网络配置和现场安全验收，用于验证已收到的两个动作执行器能否真实执行；公共动作包和执行器源码均已收到，导入阻断已解除。
 - 本地媒体及其目录、格式信息；当前云仓库三个媒体目录为空，未生成假音频补齐演示。
-- `build/g1_companion_pcm_bridge` 的源码与构建配置、官方 SDK 外部依赖。播放还需要 `ffmpeg`，本轮未验证其转换流程。
+- `build/g1_companion_pcm_bridge` 的首批源码和上游构建清单已收到，但缺 `src/g1_companion_pcm.hpp`、`tests/g1_companion_pcm_test.cpp` 及完整 C++ 工程，当前不能配置或构建；还需要官方 SDK、`jsoncpp` 和 `ffmpeg`。本轮未验证转换或播放流程，详见 [G1 PCM bridge 说明](PCM_BRIDGE.md)。
 - 老人基表及匿名演示数据，用于验证需求关联与写入；无需上传真实老人数据库。
 - `test_entertainment_interrupt.py` 等其他已有验收脚本；展示套件 `test_companion_entertainment_showcase.py` 已收到并运行。
 

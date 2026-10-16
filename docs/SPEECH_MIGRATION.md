@@ -2,7 +2,7 @@
 
 ## 范围与来源
 
-从用户提供的文本附件和源码包导入原项目 `/home/user/github-product/g1-dex3-care-vla` 中已收到的文件，保留 `speech/`、`care_console/` 与相关根目录 `scripts/` 层级。此仓库当前承载语音、日常陪伴、护理工作台和已收到的动作执行器源码，不包含完整机器人项目。
+从用户提供的文本附件和源码包导入原项目 `/home/user/github-product/g1-dex3-care-vla` 中已收到的文件，保留 `speech/`、`care_console/`、相关根目录 `scripts/`，以及已收到的 `CMakeLists.txt`、`src/`、`tests/` 路径。此仓库当前承载语音、日常陪伴、护理工作台和已收到的动作/播放桥接源码，不包含完整机器人项目。
 
 原项目的 `AGENTS.md` 保存为 `docs/upstream-project-rules.md`，用于保留原团队的控制边界、停止条件和协作约定；其中的历史训练路线、绝对路径和情绪模块状态不代表本仓库已经具备这些组件。
 
@@ -16,6 +16,7 @@
 - 动作客户端：`speech/robot_actions/action_client.py`、`speech/robot_actions/__init__.py`。
 - G1 动作执行器：`scripts/g1_elder_companion_motion_executor.py`、`scripts/g1_elder_companion_custom_action_executor.py`，是动作客户端固定定位的两个脚本。
 - 历史视觉情绪联调材料：`scripts/g1_elder_companion_emotion_demo.py`、`g1_elder_companion_emotion_preflight.sh` 及五个 `g1_elder_companion_emotion_*_run.sh`。它们未接入当前四个场景，保留原路径以记录原有独立联调链。
+- G1 PCM bridge 首批源码快照：`CMakeLists.txt`、`src/g1_companion_pcm_bridge.cpp`、`src/README.md`、`tests/assert_exit_64.cmake`、`tests/README.md`。根 CMake 属于完整机器人项目；bridge 直接头文件和核心 CTest 源码尚未收到。
 - 内层语音包：`speech/speech/` 下 9 个 Python 文件，含 ASR、TTS、播放、预设、包客户端、直接语音接口及娱乐回复模板。
 - G1 音频组件：`speech/g1_audio/` 下 6 个 Python 文件，含单次/连续录音、滚动 ASR、播放封装和娱乐打断。
 - 照护咨询：`speech/scenarios/care_consultation_support/` 下 25 个 Python 文件和含 35 条知识卡的 `care_knowledge.json`。两份同名源码附件内容相同，只导入一次。
@@ -32,7 +33,7 @@
 - 原语音文档及依赖：`speech/README.md`、`speech/TEAM_USAGE.md`、`speech/requirements.txt`。
 - 原项目规则快照：`docs/upstream-project-rules.md`。
 
-合计保留 155 个原项目文件，其中 115 个位于 `speech/`、27 个位于 `care_console/`、12 个位于 `scripts/`，包含 123 个 Python 文件和 16 个 Shell 脚本。第二批再次提供的 `speech/speech/service.py` 与首批内容一致，没有覆盖出不同版本。
+合计保留 160 个原项目文件，其中 115 个位于 `speech/`、27 个位于 `care_console/`、12 个位于 `scripts/`、5 个位于项目根的 CMake/src/tests 路径，包含 123 个 Python 文件和 16 个 Shell 脚本。第二批再次提供的 `speech/speech/service.py` 与首批内容一致，没有覆盖出不同版本。
 
 ## 现用场景与废弃场景
 
@@ -126,7 +127,7 @@
 - 动作执行器源码已收到：项目根 `scripts/g1_elder_companion_motion_executor.py`、`scripts/g1_elder_companion_custom_action_executor.py`。仍缺可验证的 Unitree SDK/版本、DDS 与设备网络配置、现场安全前置条件和实机兼容性结果；动作客户端默认引用原机器的 `tv` Python 环境和 `enp3s0`，源码可通过 `G1_ACTION_PYTHON`、`G1_ACTION_INTERFACE` 覆盖。
 - 共享老人/家属基表初始化源码已收到，但仍缺已有 SQLite 数据库的迁移、同名老人联系人回填和稳定老人 ID 对齐方案。`init_elder_need_db.py` 只创建共享需求表及索引；照护完整链仍需其余会话、记忆和个人档案表及受控演示种子。
 - 护理工作台源码、静态页、测试和运行时依赖清单已收到；尚缺原 README、审计/部署文档、systemd/Nginx 配置、真实控制台数据库、认证文件和受控启动配置。控制台与四场景的真实日志登记尚未验收。
-- G1 播放 bridge：默认查找项目根目录下的 `build/g1_companion_pcm_bridge`。其源码和构建配置尚未收到；官方 SDK 保持外部依赖，不复制 SDK 源码。娱乐打断模块还要求该二进制支持 `--allow-interrupt`、`SIGUSR1` 和对应 JSON 回执，不能用任意同名播放器代替。
+- G1 播放 bridge：默认查找项目根目录下的 `build/g1_companion_pcm_bridge`。已收到主程序、上游根 CMake 和缺确认参数的 CTest 辅助脚本；仍缺直接依赖 `src/g1_companion_pcm.hpp`、`tests/g1_companion_pcm_test.cpp` 以及根 CMake 所引用的其余 C++ 项目文件。当前不能配置或构建。官方 SDK、`jsoncpp` 和真实设备配置保持外部依赖，不复制 SDK 源码。娱乐打断模块仍要求最终二进制支持 `--allow-interrupt`、`SIGUSR1` 和对应 JSON 回执，不能用任意同名播放器代替。
 - 仅兼容 `service.listen()` 需要旧项目的 `asr.recorder`、`asr.recognize`；目前没有证据表明四场景仍调用它。
 
 当前 `speech/requirements.txt` 仅声明 `dashscope>=1.25.17`。已收到代码还使用 `openai`、`fastapi`、`pydantic`、`uvicorn`、`requests`；FastAPI 的文件与表单接口还需要 `python-multipart`。这些依赖的实际版本及其余场景依赖待核对，原依赖文件暂不改写。
@@ -151,6 +152,7 @@
 - `playback.py` 的旧播放器默认路径为 `/home/unitree/medication_robot/bin/g1_play_wav`，可用 `G1_WAV_PLAYER` 覆盖。
 - 麦克风模块用 `192.168.123.164` 作为网卡选择目标，接收 `239.168.123.161:5555` 的音频多播；与上游规则中的设备地址不完全一致，保留原值，等待现用机器验证。
 - 两个动作执行器默认 DDS 网卡为 `enp3s0`；`action_client.py` 默认用原机器的 `tv` Python 启动它们。历史视觉情绪的 dialogue wrapper 也固定这些原机路径，并额外依赖视觉虚拟环境、模型、PCM bridge、wake-mode 脚本、云配置和本机护理工作台；它们不作为四个现用场景的默认入口。
+- 收到的根 `CMakeLists.txt` 默认将 `UNITREE_SDK2_ROOT` 指向 `/home/user/github-product/unitree_sdk2`，架构为 `x86_64`；这是可覆写的构建默认值，不是凭据。当前仓库只有其中一小部分目标源码，不能对根目录运行 CMake 配置。
 - 原 README 同时包含早期 Windows、旧服药兼容接口和情绪联调内容，不能作为当前四场景的完整运行说明。
 
 上述行为均保留原状，待源码和实际运行命令齐全后再作有针对性的调整。配置文件只记录路径和变量名，不导入密钥值。
@@ -160,6 +162,8 @@
 当前累计 123 个 Python 文件、16 个 Shell 脚本，执行导入内容一致性检查、Python AST 语法解析、`bash -n` 和三份 JSON 检查。重复的 `service.py` 和照护咨询重复源码附件单独核对一致。没有执行会话配置、刷新数据库、监听麦克风或启动播放。
 
 本批九个动作执行器/情绪联调文件在解压前通过路径与链接类型检查，导入后逐文件与附件核对一致。三个 Python 文件只做 AST 语法解析，六个 Shell 文件只做 `bash -n`；静态审查未发现凭据字面量。没有导入或运行执行器 CLI、DDS、Unitree SDK、相机、视觉模型、云服务、PCM bridge、wake-mode、护理工作台或任何机器人动作。
+
+本批五个 PCM bridge 文件在解压前通过路径和链接类型检查，导入后逐文件与附件核对一致。静态审查确认主程序支持 `--dry-run`、精确确认参数以及 `--allow-interrupt`/`SIGUSR1` 的 JSON 回执契约；它在确认路径且 WAV 通过相邻缺失头文件中的解析后才初始化 SDK。因 `src/g1_companion_pcm.hpp`、`tests/g1_companion_pcm_test.cpp` 和根 CMake 的大量本地依赖尚未收到，本轮没有运行 CMake、编译、CTest、bridge 可执行文件、SDK 或设备调用。
 
 护理工作台附件在解压前通过路径和链接类型检查，导入后逐文件与附件一致。18 个工作台 Python 文件和静态资源检查通过；除会直接启动 Uvicorn 的 `care_console.__main__` 外，10 个运行模块在拦截 SQLite、子进程和 HTTP 调用的条件下导入成功。工作台原有 Node UI 测试 14 项全部通过。选择运行的 84 个 Python 测试中 83 项通过、1 项失败：删除后重建同一路径 JSONL 的恢复测试依赖 inode 复用，本环境检测到新 inode 后按源码重读仍保留的无效首行，因而持续报告“记录被拒绝”。该失败可重复，源码和原断言均未修改。未运行会启动 loopback server、Shell 子进程或 `python -m care_console` 子进程的两份工作台测试；没有启动 Uvicorn、创建仓库数据库、访问真实共享库或业务网络。
 
@@ -187,6 +191,6 @@
 
 本轮补入 `g1_contact_family_call.py`，其定义导入、Python 3.10 语法和与附件的一致性检查均通过。用临时目录和注入的 mock 语音、电话、PCM 接口验证了 `dry_run`、`preflight`、未获现场确认和后端接受四条路径；没有运行 Shell、PCM bridge、G1 语音、手机 HTTP 或真实拨号。该编排器为 Android client 使用 `phone-preflight`、`phone-dial` 子目录，因此 Shell → 编排器 → client 这条链没有复用同一个输出目录；当前 `g1_voice_demo --call-backend real` 仍走直连 client 的冲突路径，未改动。
 
-HTTP 启动、云 ASR/TTS、数据库业务行为、真实拨号及 G1 录音/播放均未验证。四个场景主体已收到，但仍缺少公共依赖、相关服务、PCM bridge 和运行配置，不能认定项目可独立运行。
+HTTP 启动、云 ASR/TTS、数据库业务行为、真实拨号及 G1 录音/播放均未验证。四个场景主体已收到，但仍缺少公共依赖、相关服务、可构建的 PCM bridge 和运行配置，不能认定项目可独立运行。
 
 后续继续按用户上传的文件分批导入和提交，保留两个版本的原有入口。未提供的源码不以占位实现补齐；机器人电脑上的现有工作区和其他成员改动保持原状。
