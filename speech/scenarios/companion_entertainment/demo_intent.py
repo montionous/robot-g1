@@ -5,7 +5,10 @@ import os
 import re
 import time
 
-import requests
+try:
+    import requests
+except ImportError:
+    requests = None
 
 from demo_protocol import (
     ALLOWED_BY_STATE,
@@ -121,8 +124,8 @@ ROBOT_PREFIXES = (
 )
 
 
-# Qwen负责识别语义，
-# 当前状态是否允许执行由外部状态机负责。
+# 允许由模型识别的全部展示标签。
+# 分类入口仍会按当前状态收敛结果，控制器再做第二层门禁。
 ALL_SHOWCASE_INTENTS = {
     PLAY_MUSIC,
     NEXT_MUSIC,
@@ -303,6 +306,11 @@ class ShowcaseIntentLLM:
         model=DEFAULT_MODEL,
         timeout=8,
     ):
+        if requests is None:
+            raise RuntimeError(
+                "缺少 requests，无法启用娱乐展示意图 LLM"
+            )
+
         api_key = os.getenv(
             "DASHSCOPE_API_KEY"
         )
@@ -341,16 +349,13 @@ class ShowcaseIntentLLM:
         state,
         allowed_intents,
     ):
-        # 意图识别和流程授权分离。
-        #
-        # Qwen始终可以识别全部showcase意图，
-        # 不因为当前state提前隐藏某些标签。
-        #
-        # allowed_intents 参数暂时保留，
-        # 兼容已有调用接口。
-        model_intents = set(
-            ALL_SHOWCASE_INTENTS
+        # 只给模型当前流程能够接受的动作和 other。
+        # 分类入口和控制器都会再做门禁，防止模型输出越过固定流程。
+        model_intents = (
+            set(allowed_intents)
+            & ALL_SHOWCASE_INTENTS
         )
+        model_intents.add(OTHER)
 
         allowed_text = ", ".join(
             sorted(
@@ -490,8 +495,8 @@ other：
 5. “换成戏曲”才是 switch_opera。
 
 6. 如果一句话表达的控制不属于
-   当前流程允许执行的控制，也仍然先准确识别语义。
-   最终是否执行由外部状态机决定。
+   当前流程允许执行的控制，必须返回 other。
+   固定流程不能被跳过。
 
 只输出 JSON：
 
@@ -652,8 +657,8 @@ def classify_showcase_intent(
         ASR
         -> Qwen
         -> confidence检查
-        -> 返回语义intent
-        -> 外部ShowcaseController负责状态授权
+        -> 分类层状态门禁
+        -> ShowcaseController再次确认状态授权
 
     规则只在：
         1. --no-llm
@@ -664,6 +669,13 @@ def classify_showcase_intent(
     value = str(
         text or ""
     ).strip()
+
+    allowed = set(
+        ALLOWED_BY_STATE.get(
+            state,
+            set(),
+        )
+    )
 
     if not value:
         return {
@@ -688,11 +700,8 @@ def classify_showcase_intent(
                 value,
                 state=state,
 
-                # 这里不再只传当前状态允许的intent。
-                # Qwen负责理解语义；
-                # 外部状态机决定是否执行。
                 allowed_intents=
-                    ALL_SHOWCASE_INTENTS,
+                    allowed | {OTHER},
             )
 
         except Exception as exc:
@@ -708,7 +717,7 @@ def classify_showcase_intent(
                 )
             )
 
-            if rule_intent is not None:
+            if rule_intent in allowed:
 
                 return {
                     "intent":
@@ -722,6 +731,15 @@ def classify_showcase_intent(
 
                     "llm_error":
                         str(exc),
+                }
+
+            if rule_intent is not None:
+                return {
+                    "intent": OTHER,
+                    "raw_intent": rule_intent,
+                    "confidence": 1.0,
+                    "source": "rule_fallback_state_gate",
+                    "llm_error": str(exc),
                 }
 
             return {
@@ -810,13 +828,17 @@ def classify_showcase_intent(
             }
 
 
-        # 注意：
-        # 这里故意不判断
-        #
-        #     raw_intent in ALLOWED_BY_STATE[state]
-        #
-        # 是否允许执行完全交给
-        # ShowcaseController.handle()。
+        # 比赛展示固定顺序不能由高置信模型跳过。
+        # 控制器仍会再次拒绝不合法输入，作为执行前的第二道门禁。
+        if raw_intent != OTHER and raw_intent not in allowed:
+            return {
+                **result,
+                "raw_intent": raw_intent,
+                "intent": OTHER,
+                "confidence": confidence,
+                "source": "llm_state_gate",
+            }
+
         return {
             **result,
 
@@ -840,7 +862,7 @@ def classify_showcase_intent(
         state=state,
     )
 
-    if rule_intent is not None:
+    if rule_intent in allowed:
 
         return {
             "intent":
@@ -851,6 +873,14 @@ def classify_showcase_intent(
 
             "source":
                 "rule_only",
+        }
+
+    if rule_intent is not None:
+        return {
+            "intent": OTHER,
+            "raw_intent": rule_intent,
+            "confidence": 1.0,
+            "source": "rule_state_gate",
         }
 
     return {

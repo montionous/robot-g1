@@ -22,7 +22,7 @@
 - G1 音频组件：`speech/g1_audio/` 下 6 个 Python 文件，含单次/连续录音、滚动 ASR、播放封装和娱乐打断。
 - 照护咨询：`speech/scenarios/care_consultation_support/` 下 25 个 Python 文件和含 35 条知识卡的 `care_knowledge.json`。两份同名源码附件内容相同，只导入一次。
 - 娱乐陪伴：`speech/scenarios/companion_entertainment/` 下 15 个 Python 文件，以及用户提供的 `content_catalog.json`、`news_scripts.json`；未导入音频素材。
-- 娱乐展示验收：`speech/test_companion_entertainment_showcase.py`，包含 15 项原有 unittest，保持断言原样。
+- 娱乐展示验收：`speech/test_companion_entertainment_showcase.py`，包含 15 项分类与固定状态机 unittest，均已通过。
 - 社交活动：`speech/scenarios/social_activity_support/` 下 21 个 Python 文件，包含普通版、展示版、日程脚本和三个 `video_baseline` 文件，全部保留原路径。
 - 社交展示验收：`speech/test_social_activity_showcase.py`，包含原有用例及背景描述/具体活动查询的规则回归用例。
 - 联系家属：`speech/scenarios/contact_family/` 下 11 个 Python 文件，包含语音/文字入口、电话后端、联系人逻辑与数据库访问、网页模拟通话服务和 `test_db.py`。
@@ -175,9 +175,9 @@
 
 已尝试 `python3 speech/scenarios/care_consultation_support/test_showcase_offline_chain.py`，退出码为 1，原因是前置检查找不到 `speech/data/elder_companion.db`；5 段场景验收均未执行。基础初始化源码现已导入，但为避免在仓库创建数据文件，没有按默认路径执行；完整照护链还需要需求、会话、记忆和个人档案等表及种子。因此没有重复运行同一个会在前置检查停止的命令。
 
-娱乐陪伴的 12 个控制与媒体模块导入通过；两个语音入口前批因缺 `robot_actions` 受阻，本批补齐真实动作模块后，分别执行 `--help` 加载并退出成功。新闻音频生成脚本只做静态检查，未导入或执行。前批已运行原有规则脚本的 14 个样例及文字入口的 5 轮输入；媒体为空时返回 `empty`/`not_found`，停止指令正常结束，未验证实际播放。
+娱乐陪伴的 12 个控制与媒体模块导入通过；两个语音入口前批因缺 `robot_actions` 受阻，本批补齐真实动作模块后，分别执行 `--help` 加载并退出成功。当前云环境没有 `requests`，展示分类模块只在启用云 LLM 时要求该依赖，所以规则模式仍可导入和测试。新闻音频生成脚本只做静态检查，未导入或执行。前批已运行原有规则脚本的 14 个样例及文字入口的 5 轮输入；媒体为空时返回 `empty`/`not_found`，停止指令正常结束，未验证实际播放。
 
-本批明确选择原有 `test_companion_entertainment_showcase` 套件运行，15 项实际执行：12 项通过、3 项失败、0 错误、0 跳过，测试退出码为 1。三项失败是分类结果与测试期望不同，详见娱乐模块文档；随后逐例核对，状态机均返回 `ignore` 且状态未改变。这些诊断不替代原测试，也没有把该套件记为通过。业务源码和测试断言均保持原样。
+本轮执行 `test_companion_entertainment_showcase`：15 项实际执行，15 项通过、0 失败、0 错误、0 跳过。展示分类入口现按当前状态收敛模型和规则结果，固定流程外的输入返回 `other`；控制器仍保留执行前状态门禁。测试只使用内存 `FakeLLM` 和规则，没有业务网络、数据库、媒体、子进程或机器人动作调用。
 
 社交活动的 21 个模块导入通过，普通语音、展示语音和文字展示入口的 `--help` 均正常退出。初次导入时，`text_showcase_demo.py --demo-data --scripted --no-llm` 的背景描述会误触发查询、打断已选活动上下文；本轮将具体活动查询限定为显式问法，背景描述现会保持 `other`，并保留正常“有没有唱歌活动”“那唱歌呢”查询。
 
