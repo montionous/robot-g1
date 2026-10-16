@@ -76,7 +76,7 @@ content/opera/
 - 本地媒体及其目录、格式信息；当前云仓库三个媒体目录为空，未生成假音频补齐演示。
 - `build/g1_companion_pcm_bridge` 的主程序、相邻头文件和核心测试源码已收到，但根 CMake 的其余 C++ 工程仍未迁移，当前不能配置或构建；还需要官方 SDK、`jsoncpp` 和 `ffmpeg`。本轮未验证转换或播放流程，详见 [G1 PCM bridge 说明](PCM_BRIDGE.md)。
 - 老人基表及匿名演示数据，用于验证需求关联与写入；无需上传真实老人数据库。
-- `test_entertainment_interrupt.py` 等其他已有验收脚本；展示套件 `test_companion_entertainment_showcase.py` 已收到并运行。
+- `test_entertainment_interrupt.py` 已收到，静态审查确认它覆盖 PCM 打断协议；该测试会建立本地 fake bridge 并启动进程，本轮没有运行。展示套件 `test_companion_entertainment_showcase.py` 已收到并运行。
 
 ## 本轮验证结果
 

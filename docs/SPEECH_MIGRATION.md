@@ -16,6 +16,7 @@
 - 动作客户端：`speech/robot_actions/action_client.py`、`speech/robot_actions/__init__.py`。
 - G1 动作执行器：`scripts/g1_elder_companion_motion_executor.py`、`scripts/g1_elder_companion_custom_action_executor.py`，是动作客户端固定定位的两个脚本。
 - 历史视觉情绪联调材料：`scripts/g1_elder_companion_emotion_demo.py`、`g1_elder_companion_emotion_preflight.sh` 及五个 `g1_elder_companion_emotion_*_run.sh`。它们未接入当前四个场景，保留原路径以记录原有独立联调链。
+- 历史视觉情绪逻辑与测试：`speech/emotion_interaction.py`、`speech/emotion_dialogue.py`、两个 `speech/test_emotion_*.py`、`speech/test_entertainment_interrupt.py`，以及 `tests/` 下两个 emotion launcher 测试。它们属于同一条未接入四个现用场景的独立联调链；其中对话代码仍直接依赖已废弃且未迁移的 `scenarios/elder_companion`。
 - G1 PCM bridge 源码快照：`CMakeLists.txt`、`src/g1_companion_pcm_bridge.cpp`、`src/g1_companion_pcm.hpp`、`src/README.md`、`tests/g1_companion_pcm_test.cpp`、`tests/assert_exit_64.cmake`、`tests/README.md`。bridge 明确列出的本地 C++ 输入已收到；根 CMake 仍属于未完整迁移的机器人项目。
 - 内层语音包：`speech/speech/` 下 9 个 Python 文件，含 ASR、TTS、播放、预设、包客户端、直接语音接口及娱乐回复模板。
 - G1 音频组件：`speech/g1_audio/` 下 6 个 Python 文件，含单次/连续录音、滚动 ASR、播放封装和娱乐打断。
@@ -33,7 +34,7 @@
 - 原语音文档及依赖：`speech/README.md`、`speech/TEAM_USAGE.md`、`speech/requirements.txt`。
 - 原项目规则快照：`docs/upstream-project-rules.md`。
 
-合计保留 162 个原项目文件，其中 115 个位于 `speech/`、27 个位于 `care_console/`、12 个位于 `scripts/`、7 个位于项目根的 CMake/src/tests 路径，以及 1 份转换保存的上游 `AGENTS.md` 规则快照；包含 123 个 Python 文件和 16 个 Shell 脚本。第二批再次提供的 `speech/speech/service.py` 与首批内容一致，没有覆盖出不同版本。
+合计保留 169 个原项目文件，其中 120 个位于 `speech/`、27 个位于 `care_console/`、12 个位于 `scripts/`、9 个位于项目根的 CMake/src/tests 路径，以及 1 份转换保存的上游 `AGENTS.md` 规则快照；包含 130 个 Python 文件和 16 个 Shell 脚本。第二批再次提供的 `speech/speech/service.py` 与首批内容一致，没有覆盖出不同版本。
 
 ## 现用场景与废弃场景
 
@@ -43,7 +44,7 @@
 
 第二批附件主要包含公共包与 G1 音频组件，不包含额外的 `scenarios/` 目录。`$HOME/.config/elder_companion/cloud.env` 是现有脚本共用的配置路径，不因与废弃场景同名而删除或改名。
 
-本批的七个 `g1_elder_companion_emotion_*` 文件是未接入当前四个场景的历史独立视觉情绪/实机联调材料。它们的文件名前缀与已废弃场景相同，但没有据此删除或把它们当成当前默认入口；仅在保留的原 `speech/README.md` 中存在 `emotion_demo.py` 与 `emotion_preflight.sh` 的手工示例。
+本批的七个 `g1_elder_companion_emotion_*` 文件及新增的情绪互动逻辑/测试，都是未接入当前四个场景的历史独立视觉情绪/实机联调材料。它们的文件名前缀或直接导入与已废弃场景有关，但没有据此删除、重新导入废弃目录或把它们当成当前默认入口；仅在保留的原 `speech/README.md` 中存在 `emotion_demo.py` 与 `emotion_preflight.sh` 的手工示例。详细边界见[历史视觉情绪互动链说明](EMOTION_MODULE.md)。
 
 | 模块 | 当前可确认的调用证据 | 整理状态 |
 | --- | --- | --- |
@@ -125,6 +126,7 @@
 - 当前活动 SQLite 未初始化或填充；内存演练与已收到的展示测试不替代真实 SQL、报名记录、工作人员通知及日程刷新验收。
 - 娱乐陪伴的实际媒体。当前仓库的音乐、新闻、戏曲目录均为空；展示入口检查至少两首音乐、一条新闻、一段戏曲。展示 unittest 已收到，打断等其他验收脚本仍未上传。
 - 动作执行器源码已收到：项目根 `scripts/g1_elder_companion_motion_executor.py`、`scripts/g1_elder_companion_custom_action_executor.py`。仍缺可验证的 Unitree SDK/版本、DDS 与设备网络配置、现场安全前置条件和实机兼容性结果；动作客户端默认引用原机器的 `tv` Python 环境和 `enp3s0`，源码可通过 `G1_ACTION_PYTHON`、`G1_ACTION_INTERFACE` 覆盖。
+- 历史情绪对话：`emotion_dialogue.py` 与 `test_emotion_dialogue.py` 仍缺 `speech/scenarios/elder_companion/elder_chat_client.py`、`end_request.py`，所以不能导入或运行；历史 launcher 还缺 wake-mode 脚本、两个本机虚拟环境、视觉模型和演示视频。`emotion_interaction.py --g1-bridge` 所需的固定 phrase bridge 源码也未收到。详见[历史视觉情绪互动链说明](EMOTION_MODULE.md)。
 - 共享老人/家属基表初始化源码已收到，但仍缺已有 SQLite 数据库的迁移、同名老人联系人回填和稳定老人 ID 对齐方案。`init_elder_need_db.py` 只创建共享需求表及索引；照护完整链仍需其余会话、记忆和个人档案表及受控演示种子。
 - 护理工作台源码、静态页、测试和运行时依赖清单已收到；尚缺原 README、审计/部署文档、systemd/Nginx 配置、真实控制台数据库、认证文件和受控启动配置。控制台与四场景的真实日志登记尚未验收。
 - G1 播放 bridge：默认查找项目根目录下的 `build/g1_companion_pcm_bridge`。主程序、相邻头文件、核心测试和缺确认参数的 CTest 辅助脚本已收到；根 CMake 所引用的其余 C++ 项目文件仍未迁移，当前不能配置或构建。头文件静态确认的条件是 16 kHz、单声道、16 位 PCM、32 MiB 实际数据上限；实现没有 15 秒时长上限。官方 SDK、`jsoncpp` 和真实设备配置保持外部依赖，不复制 SDK 源码。娱乐打断模块仍要求最终二进制支持 `--allow-interrupt`、`SIGUSR1` 和对应 JSON 回执，不能用任意同名播放器代替。
@@ -162,6 +164,8 @@
 当前累计 123 个 Python 文件、16 个 Shell 脚本，执行导入内容一致性检查、Python AST 语法解析、`bash -n` 和三份 JSON 检查。重复的 `service.py` 和照护咨询重复源码附件单独核对一致。没有执行会话配置、刷新数据库、监听麦克风或启动播放。
 
 本批九个动作执行器/情绪联调文件在解压前通过路径与链接类型检查，导入后逐文件与附件核对一致。三个 Python 文件只做 AST 语法解析，六个 Shell 文件只做 `bash -n`；静态审查未发现凭据字面量。没有导入或运行执行器 CLI、DDS、Unitree SDK、相机、视觉模型、云服务、PCM bridge、wake-mode、护理工作台或任何机器人动作。
+
+本批七个历史情绪逻辑/测试 Python 文件在解压前通过路径与链接类型检查，导入后逐文件与附件核对一致，并完成 AST 语法解析。静态审查核对了事件校验、确认播放、娱乐打断和 launcher 门控；没有运行测试或 launcher。`test_entertainment_interrupt.py` 会创建本地 fake bridge 并启动进程，两个 launcher 测试会调用 Shell 拒绝分支；它们不替代真实 bridge、SDK、DDS、麦克风或现场播放验收。归档附带的两份长 Markdown 原件因含部署端点、内部路径和个人档案描述而未原样推送；没有发现密钥值，并以脱敏的[历史视觉情绪互动链说明](EMOTION_MODULE.md)记录其迁移边界。
 
 两个 PCM bridge 归档合计七个文件在解压前通过路径和链接类型检查，导入后逐文件与附件核对一致。静态审查确认主程序支持 `--dry-run`、精确确认参数以及 `--allow-interrupt`/`SIGUSR1` 的 JSON 回执契约；相邻头文件的 WAV 校验与分块/停止逻辑、核心测试的内存级覆盖也已审阅。确认播放路径才会初始化 SDK；根 CMake 的大量本地依赖仍未收到。本轮没有运行 CMake、编译、CTest、bridge 可执行文件、SDK 或设备调用。
 

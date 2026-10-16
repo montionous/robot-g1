@@ -4,12 +4,16 @@
 
 **当前为分批导入阶段，还不能在新机器上独立运行。** 已导入公共语音源码、云 ASR/TTS、G1 音频组件、共享需求/播报/会话记录、动作客户端、四场景启动脚本和主体代码，以及已收到的数据清单与测试。电话 Shell 入口、编排器、Android HTTP client、共享老人/家属基表初始化源码、动作执行器源码、PCM bridge 的主程序、相邻头文件和核心测试源码，以及护理工作台的源码、静态页、测试和独立运行时依赖清单已收到；根 CMake 的其余 C++ 工程、Unitree SDK 与实机运行配置仍未验证。初始化源码只含电话占位符的比赛示例，生成的数据库不纳入仓库。
 
+历史视觉情绪互动链的逻辑与测试已保存，但它直接依赖已废弃且未迁移的 `elder_companion` 模块，不属于四个现用场景的入口。依赖、动作边界和验证限制见[历史视觉情绪互动链说明](docs/EMOTION_MODULE.md)。
+
 ```text
 speech/
 ├── server.py          # HTTP 语音服务：健康检查、TTS、ASR、音频下载
 ├── speech_client.py   # HTTP 客户端及 G1 录音、播放接口
 ├── speech/            # 云 ASR/TTS、预设、包客户端与直接语音接口
 ├── g1_audio/          # G1 录音、滚动识别、播放及娱乐打断
+├── emotion_interaction.py # 历史情绪策略到语音互动
+├── emotion_dialogue.py    # 历史多轮情绪对话（依赖未迁移模块）
 ├── companion_recording_env.sh
 ├── companion_recording.py  # 有界会话记录
 ├── decision_announcer.py   # 可选决策播报
