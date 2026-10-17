@@ -162,6 +162,7 @@ def listen_once(
 
     result = speech.listen_g1(
         seconds=seconds,
+        delete_audio_after_transcribe=True,
     )
 
     text = str(
@@ -312,6 +313,11 @@ def start_live_asr(
     *,
     window_seconds,
 ):
+    startup_window = min(
+        2.0,
+        float(window_seconds),
+    )
+
     live = G1RollingASR(
         speech,
 
@@ -320,12 +326,22 @@ def start_live_asr(
         window_seconds=
             window_seconds,
 
+        # 首句不再强制等满4.5秒：同一条持续PCM缓冲会依次
+        # 生成 2.0、2.5……秒的预热窗口，之后仍是完整滑动窗。
+        startup_min_window_seconds=
+            startup_window,
+
         # 每0.5秒产生一个新的4.5秒完整窗口。
         hop_seconds=0.5,
 
         # 两个ASR worker并行处理，
         # 避免0.5秒窗口产生速度超过识别速度。
         worker_count=2,
+
+        # 静音和短促噪声不送云端；媒体声与老人声仍由下面的
+        # 状态机和意图候选过滤区分。
+        speech_rms_threshold=450,
+        min_voiced_seconds=0.12,
 
         buffer_seconds=max(
             10.0,
@@ -339,6 +355,8 @@ def start_live_asr(
         "持续监听",
         (
             "已启动；"
+            f"启动窗口={startup_window:.1f}"
+            f"→{window_seconds:.1f}秒，"
             f"滚动窗口={window_seconds:.1f}秒，"
             "更新步长=0.5秒，"
             "ASR并行=2"
@@ -866,6 +884,43 @@ def run_scene(
             ).strip()
 
             if not text:
+                continue
+
+            # 预热窗口只在老人已经停顿时参与控制判断，避免把
+            # 正在说的长句前半段当成完整命令。
+            if event.get("phase") == "bootstrap":
+
+                trailing_silence = float(
+                    (
+                        event.get("vad")
+                        or {}
+                    ).get(
+                        "trailing_silence_seconds",
+                        0.0,
+                    )
+                    or 0.0
+                )
+
+                if trailing_silence < 0.45:
+
+                    log(
+                        "预热识别",
+                        "老人可能仍在说话，等待下一窗口",
+                    )
+
+                    continue
+
+            # 媒体正文和环境声不进入LLM意图识别，减少误触发。
+            if not looks_like_live_control_candidate(
+                text,
+                showcase.state,
+            ):
+
+                log(
+                    "控制判断",
+                    "不是当前阶段的控制候选，静默忽略",
+                )
+
                 continue
 
             asr_ms = event.get(

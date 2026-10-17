@@ -141,6 +141,7 @@ def listen_once(
             seconds=seconds,
             wait_for_speech=True,
             silence_timeout=silence_timeout,
+            delete_audio_after_transcribe=True,
         )
     )
 

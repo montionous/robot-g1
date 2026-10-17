@@ -173,6 +173,13 @@ def listen(
 
     result = speech.listen_g1(
         seconds=seconds,
+        # 普通语音指令等待老人开口并在说完后收尾；真实通话的
+        # 原始录音链路在下面的 call 流程中保持独立。
+        wait_for_speech=True,
+        start_timeout=15.0,
+        silence_timeout=1.0,
+        speech_rms_threshold=450,
+        delete_audio_after_transcribe=True,
     )
 
     text = (

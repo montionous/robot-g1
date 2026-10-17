@@ -444,6 +444,7 @@ class SpeechClient:
         start_timeout: float = 12.0,
         silence_timeout: float = 1.8,
         speech_rms_threshold: int = 450,
+        delete_audio_after_transcribe: bool = False,
     ) -> dict:
         """
         队友最常用的“机器人听”。
@@ -454,120 +455,166 @@ class SpeechClient:
         先等待检测到老人开口，
         再开始计算 seconds，
         并支持说完后的静音自动结束。
+
+        delete_audio_after_transcribe=True 时，只删除本次自动创建的
+        临时录音。显式传入 output_path 的调用仍由调用方保留和管理。
         """
 
-        if wait_for_speech:
+        auto_output_path = output_path is None
+        recording = None
+        result = None
 
-            from g1_audio.g1_mic_recorder import (
-                record_g1_wav,
-            )
+        try:
+            if wait_for_speech:
 
-            if output_path is None:
-
-                import tempfile
-
-                DEFAULT_INPUT_DIR.mkdir(
-                    parents=True,
-                    exist_ok=True,
+                from g1_audio.g1_mic_recorder import (
+                    record_g1_wav,
                 )
 
-                temp = (
-                    tempfile.NamedTemporaryFile(
-                        prefix="g1_mic_",
-                        suffix=".wav",
-                        dir=DEFAULT_INPUT_DIR,
-                        delete=False,
+                if output_path is None:
+
+                    import tempfile
+
+                    DEFAULT_INPUT_DIR.mkdir(
+                        parents=True,
+                        exist_ok=True,
                     )
+
+                    temp = (
+                        tempfile.NamedTemporaryFile(
+                            prefix="g1_mic_",
+                            suffix=".wav",
+                            dir=DEFAULT_INPUT_DIR,
+                            delete=False,
+                        )
+                    )
+
+                    temp.close()
+
+                    output_path = (
+                        temp.name
+                    )
+
+                recording = record_g1_wav(
+                    output_path,
+                    seconds=seconds,
+                    interface_ip=
+                        interface_ip,
+                    wait_for_speech=True,
+                    start_timeout=
+                        start_timeout,
+                    silence_timeout=
+                        silence_timeout,
+                    speech_rms_threshold=
+                        speech_rms_threshold,
                 )
 
-                temp.close()
+            else:
 
-                output_path = (
-                    temp.name
+                recording = self.record_g1(
+                    seconds=seconds,
+                    output_path=output_path,
+                    interface_ip=
+                        interface_ip,
                 )
 
-
-            recording = record_g1_wav(
-                output_path,
-                seconds=seconds,
-                interface_ip=
-                    interface_ip,
-                wait_for_speech=True,
-                start_timeout=
-                    start_timeout,
-                silence_timeout=
-                    silence_timeout,
-                speech_rms_threshold=
-                    speech_rms_threshold,
-            )
-
-        else:
-
-            recording = self.record_g1(
-                seconds=seconds,
-                output_path=output_path,
-                interface_ip=
-                    interface_ip,
-            )
-
-
-        # 等待超时但老人没有开口时，
-        # 不把环境静音送给 ASR。
-        if (
-            wait_for_speech
-            and not recording.get(
-                "speech_detected",
-                False,
-            )
-        ):
-
-            return {
-                "text":
-                    "",
-
-                "audio_path":
-                    recording[
-                        "path"
-                    ],
-
-                "recording":
-                    recording,
-
-                "source":
-                    "g1",
-
-                "speech_detected":
+            # 等待超时但老人没有开口时，
+            # 不把环境静音送给 ASR。
+            if (
+                wait_for_speech
+                and not recording.get(
+                    "speech_detected",
                     False,
-            }
+                )
+            ):
 
+                result = {
+                    "text":
+                        "",
 
-        asr_started_at = time.monotonic()
-        result = self.transcribe(
-            recording["path"],
-            language=language,
-            enable_itn=enable_itn,
-        )
+                    "audio_path":
+                        recording[
+                            "path"
+                        ],
 
-        result["asr_wall_ms"] = (time.monotonic() - asr_started_at) * 1000
+                    "recording":
+                        recording,
 
-        result["audio_path"] = (
-            recording["path"]
-        )
+                    "source":
+                        "g1",
 
-        result["recording"] = (
-            recording
-        )
+                    "speech_detected":
+                        False,
+                }
 
-        result["source"] = "g1"
+                return result
 
-        result["speech_detected"] = (
-            recording.get(
-                "speech_detected",
-                True,
+            asr_started_at = time.monotonic()
+            result = self.transcribe(
+                recording["path"],
+                language=language,
+                enable_itn=enable_itn,
             )
-        )
 
-        return result
+            result["asr_wall_ms"] = (
+                time.monotonic()
+                - asr_started_at
+            ) * 1000
+
+            result["audio_path"] = (
+                recording["path"]
+            )
+
+            result["recording"] = (
+                recording
+            )
+
+            result["source"] = "g1"
+
+            result["speech_detected"] = (
+                recording.get(
+                    "speech_detected",
+                    True,
+                )
+            )
+
+            return result
+
+        finally:
+            if (
+                delete_audio_after_transcribe
+                and auto_output_path
+            ):
+                cleanup_path = (
+                    recording.get(
+                        "path"
+                    )
+                    if recording is not None
+                    else output_path
+                )
+
+                deleted = False
+
+                if cleanup_path:
+                    try:
+                        Path(cleanup_path).unlink(
+                            missing_ok=True
+                        )
+                        deleted = True
+                    except OSError:
+                        pass
+
+                if result is not None and deleted:
+                    result["audio_path"] = None
+                    result["audio_deleted"] = True
+
+                    cleaned_recording = dict(
+                        recording
+                    )
+                    cleaned_recording["path"] = None
+                    cleaned_recording["audio_deleted"] = True
+                    result["recording"] = cleaned_recording
+
 
     # =====================================================
     # G1：播放已有WAV

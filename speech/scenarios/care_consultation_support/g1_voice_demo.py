@@ -280,6 +280,10 @@ def listen(
         # G1 PCM16 的起声 RMS 阈值。
         # 后续可根据实机环境微调。
         speech_rms_threshold=450,
+
+        # 这是本轮自动创建的中间录音，识别和审计元数据完成后
+        # 不需要继续占用 speech/input。
+        delete_audio_after_transcribe=True,
     )
 
     text = str(

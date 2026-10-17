@@ -167,6 +167,7 @@ def listen(
 
     result = speech.listen_g1(
         seconds=seconds,
+        delete_audio_after_transcribe=True,
     )
 
     text = str(
@@ -629,9 +630,12 @@ def run_scene(
         return G1RollingASR(
             speech,
             window_seconds=4.5,
+            startup_min_window_seconds=2.0,
             hop_seconds=0.5,
             worker_count=2,
             buffer_seconds=12.0,
+            speech_rms_threshold=450,
+            min_voiced_seconds=0.12,
         )
 
     live = None
@@ -657,6 +661,7 @@ def run_scene(
             "持续监听",
             (
                 "已启动；"
+                "启动窗口=2.0→4.5秒，"
                 "滚动窗口=4.5秒，"
                 "更新步长=0.5秒，"
                 "ASR并行=2"
@@ -749,6 +754,30 @@ def run_scene(
 
             if not text:
                 continue
+
+            # 短预热窗口只在老人已经出现停顿后才参与意图判断，
+            # 防止长句的前半段被当成完整控制命令。
+            if event.get("phase") == "bootstrap":
+
+                trailing_silence = float(
+                    (
+                        event.get("vad")
+                        or {}
+                    ).get(
+                        "trailing_silence_seconds",
+                        0.0,
+                    )
+                    or 0.0
+                )
+
+                if trailing_silence < 0.45:
+
+                    log(
+                        "预热识别",
+                        "老人可能仍在说话，等待下一窗口",
+                    )
+
+                    continue
 
             record_asr(
                 "companion_entertainment",

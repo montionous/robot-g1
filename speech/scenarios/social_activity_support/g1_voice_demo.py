@@ -108,11 +108,20 @@ def listen(
 ):
     log(
         "正在听",
-        f"{seconds:.1f} 秒",
+        (
+            "等待老人开口；"
+            f"开口后最多 {seconds:.1f} 秒，"
+            "静音 1.2 秒结束"
+        ),
     )
 
     result = speech.listen_g1(
         seconds=seconds,
+        wait_for_speech=True,
+        start_timeout=15.0,
+        silence_timeout=1.2,
+        speech_rms_threshold=450,
+        delete_audio_after_transcribe=True,
     )
 
     text = str(
