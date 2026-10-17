@@ -34,6 +34,7 @@ sys.path.insert(
 
 
 from speech_client import SpeechClient
+from speech.prepared_audio import PreparedPromptCatalog
 from decision_announcer import (
     announce_decision,
 )
@@ -78,6 +79,10 @@ from showcase_protocol import (
 
 ANNOUNCER_DIALECT = "mandarin"
 
+PREPARED_PROMPTS = PreparedPromptCatalog(
+    SCENE_DIR / "prepared_prompts.json"
+)
+
 
 def log(
     name,
@@ -109,10 +114,16 @@ def speak(
         text,
     )
 
-    speech.speak_g1(
+    result = PREPARED_PROMPTS.play_or_speak(
+        speech,
         text,
         style="companion",
         dialect=dialect,
+    )
+
+    log(
+        "语音来源",
+        result.get("audio_source", "runtime_tts"),
     )
 
     # 避免机器人刚说完，
@@ -702,6 +713,7 @@ def run_scene(
                         announce_decisions,
                     dialect=
                         ANNOUNCER_DIALECT,
+                    prepared_prompts=PREPARED_PROMPTS,
                 )
 
             reply = (

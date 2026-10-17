@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "scene": "care_consultation_support",
+  "voice_profile": "companion-v1",
+  "prompts": [
+    {
+      "id": "listen_retry",
+      "text": "我没有听清，您可以再说一遍哪里不舒服。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "initial_no_input_end",
+      "text": "这次护理咨询先到这里。如果之后还有不舒服，可以再告诉我。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "not_detected",
+      "text": "我暂时没有听出具体的护理问题。如果身体有哪里不舒服，可以直接告诉我。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "processing_error",
+      "text": "我现在没能完成这次护理咨询。如果您仍然不舒服，请告诉工作人员帮您看看。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "idle_reminder",
+      "text": "我还在听。如果还有想问的，您可以接着说。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "no_response_end",
+      "text": "您好像暂时没有其他问题了。这次护理咨询先到这里，需要的时候可以再告诉我。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_transfer_urgent",
+      "text": "检测到您描述的情况不属于一般日常护理咨询，将转交异常情况处理流程。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_transfer_contact_family",
+      "text": "检测到您有联系家人的需求。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_user_requested_end",
+      "text": "检测到您希望结束本次护理咨询。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_low_mobility",
+      "text": "检测到您咨询的是肢体活动和肌肉关节不适，目前进入一般护理评估。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_low_dizziness",
+      "text": "检测到您咨询的是头晕和一般状态，目前进入一般护理评估。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_low_sleep",
+      "text": "检测到您咨询的是睡眠护理，目前进入一般护理评估。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_low_appetite",
+      "text": "检测到您咨询的是饮食和食欲，目前进入一般护理评估。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_low_bowel",
+      "text": "检测到您咨询的是排便和生活护理，目前进入一般护理评估。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_low_fatigue",
+      "text": "检测到您咨询的是疲劳和一般状态，目前进入一般护理评估。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_low_general_care",
+      "text": "检测到您咨询的是一般日常护理，目前进入一般护理评估。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_needs_staff",
+      "text": "检测到不适存在持续、反复或需要进一步关注的表现，系统判断需要工作人员进一步关注。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_staff_recorded",
+      "text": "检测到不适存在持续、反复或需要进一步关注的表现，系统判断需要工作人员进一步关注。相关情况已自动记录，并生成工作人员关注事项。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_staff_simulated",
+      "text": "检测到不适存在持续、反复或需要进一步关注的表现，系统判断需要工作人员进一步关注。当前为演示模式，已模拟生成工作人员关注事项。",
+      "style": "companion",
+      "dialect": "mandarin"
+    }
+  ]
+}

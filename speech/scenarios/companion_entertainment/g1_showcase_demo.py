@@ -37,6 +37,10 @@ from speech_client import (
     SpeechClient,
 )
 
+from speech.prepared_audio import (
+    PreparedPromptCatalog,
+)
+
 from g1_audio.g1_live_asr import (
     G1RollingASR,
 )
@@ -79,6 +83,11 @@ from g1_media_player import (
 
 from speech.reply.companion_entertainment import (
     generate_reply,
+)
+
+
+PREPARED_PROMPTS = PreparedPromptCatalog(
+    SCENE_DIR / "prepared_prompts.json"
 )
 
 
@@ -140,11 +149,20 @@ def speak_interaction(
         text,
     )
 
-    speech.speak_g1(
+    result = PREPARED_PROMPTS.play_or_speak(
+        speech,
         text,
         style="companion",
         dialect=
             INTERACTION_DIALECT,
+    )
+
+    log(
+        "语音来源",
+        result.get(
+            "audio_source",
+            "runtime_tts",
+        ),
     )
 
     time.sleep(0.4)
@@ -443,6 +461,7 @@ def announce(
         enabled=enabled,
         dialect=
             ANNOUNCER_DIALECT,
+        prepared_prompts=PREPARED_PROMPTS,
     )
 
 

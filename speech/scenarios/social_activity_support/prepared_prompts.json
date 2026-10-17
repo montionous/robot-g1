@@ -1,0 +1,289 @@
+{
+  "schema_version": 1,
+  "scene": "social_activity_support",
+  "voice_profile": "companion-v1",
+  "prompts": [
+    {
+      "id": "asr_error_end",
+      "text": "语音识别暂时出现问题，这次活动咨询先结束。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "listen_retry",
+      "text": "我没有听清。您可以问今天有什么活动，或者有没有唱歌、聊天、讲座和观影活动。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "no_response_end",
+      "text": "这次活动咨询先结束。需要的时候再叫我。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "showcase_opening",
+      "text": "您好，我可以帮您看看今天或明天有什么社区集体活动。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "showcase_timeout_end",
+      "text": "这次活动咨询先到这里。需要的时候您再告诉我。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "showcase_end",
+      "text": "好的，那这次活动咨询就先到这里。需要的时候您再叫我。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "no_more",
+      "text": "暂时没有更多合适的活动了。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "not_found",
+      "text": "我没有查到符合条件的活动。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "showcase_not_found",
+      "text": "我暂时没有查到符合条件的活动。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "need_query_before_select",
+      "text": "您还没有选择活动，可以先问我今天有什么活动。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "select_failed",
+      "text": "我还不确定您指的是哪个活动，可以说第一个、第二个，或者直接说活动名称。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "need_query",
+      "text": "您可以先问我今天有什么活动。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "need_select_for_detail",
+      "text": "您想问哪个活动？",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "need_select_for_join",
+      "text": "您想参加哪个活动？",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "unexpected_confirm",
+      "text": "您可以先选择一个想参加的活动。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "waitlist_recorded",
+      "text": "好的，我已经帮您记录候补意愿，并生成了工作人员通知。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "late_inquiry_recorded",
+      "text": "好的，我已经记录您的意愿，并请工作人员确认是否还能参加。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "interest_recorded",
+      "text": "好的，我已经帮您记录参加意愿，并生成工作人员通知，等待工作人员确认。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "join_cancelled",
+      "text": "好的，这次不登记。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decline_end",
+      "text": "好的，这次先不参加，我就不继续推荐了。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "unknown_command",
+      "text": "我没有听清。您可以问今天有什么活动、下午有什么活动，或者有没有唱歌、聊天、讲座和观影活动。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "already_recorded",
+      "text": "这个活动之前已经登记过了。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_query",
+      "text": "检测到您希望查询社区集体活动。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_select_fallback",
+      "text": "检测到您对刚才介绍的一个活动感兴趣。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_ask_time",
+      "text": "检测到您正在询问当前活动的时间。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_ask_location",
+      "text": "检测到您正在询问当前活动的地点。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_ask_availability",
+      "text": "检测到您正在询问当前活动的人数情况。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_ask_registration",
+      "text": "检测到您正在询问当前活动是否需要报名。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_repeat_details",
+      "text": "检测到您希望再次了解当前活动的信息。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_join_fallback",
+      "text": "检测到您表示希望参加当前活动。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_confirm_yes",
+      "text": "检测到您确认登记参加当前活动。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_confirm_no",
+      "text": "检测到您暂时不登记当前活动。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_end",
+      "text": "检测到您希望结束这次活动咨询。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_normal_select",
+      "text": "检测到您已经选择了一个活动。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_normal_detail_time",
+      "text": "检测到您正在询问活动时间。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_normal_detail_location",
+      "text": "检测到您正在询问活动地点。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_normal_detail_availability",
+      "text": "检测到您正在询问活动参与名额。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_normal_detail_registration",
+      "text": "检测到您正在询问活动报名要求。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_normal_confirm_join",
+      "text": "检测到您有参加活动的意愿。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_normal_confirm_waitlist",
+      "text": "检测到您希望参加该活动，但当前活动已经满员。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_normal_confirm_late_inquiry",
+      "text": "检测到您希望参加该活动，但当前报名已经截止。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_normal_interest_recorded",
+      "text": "检测到您的活动参与意愿已经确认并记录。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_normal_already_recorded",
+      "text": "检测到您之前已经登记过这个活动。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_normal_cancelled",
+      "text": "检测到您选择的活动当前已经取消。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_normal_join_cancelled",
+      "text": "检测到您取消了本次活动登记。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_normal_end",
+      "text": "检测到您暂时不想继续参加活动。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_normal_not_found",
+      "text": "检测到当前没有找到符合条件的活动。",
+      "style": "companion",
+      "dialect": "mandarin"
+    }
+  ]
+}

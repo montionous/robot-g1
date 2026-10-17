@@ -26,7 +26,8 @@ sys.path.insert(
 
 
 from speech_client import SpeechClient
-from decision_announcer import announce_decision
+from speech.prepared_audio import PreparedPromptCatalog
+from decision_announcer import announce_decision as _announce_decision
 from companion_recording import (
     record_asr,
     record_receipt,
@@ -68,6 +69,28 @@ RINGTONE_PATH = (
     AUDIO_DIR
     / "phone_ringtone.wav"
 )
+
+PREPARED_PROMPTS = PreparedPromptCatalog(
+    SCENE_DIR / "prepared_prompts.json"
+)
+
+
+def announce_decision(
+    speech,
+    text,
+    *,
+    enabled=False,
+    dialect="mandarin",
+):
+    """Use the contact-family prompt catalog for fixed decision notices."""
+
+    return _announce_decision(
+        speech,
+        text,
+        enabled=enabled,
+        dialect=dialect,
+        prepared_prompts=PREPARED_PROMPTS,
+    )
 
 
 # =========================================================
@@ -119,7 +142,8 @@ def say(
 
     record_speech_request("contact_family", text, source="say")
     try:
-        result = speech.speak_g1(
+        result = PREPARED_PROMPTS.play_or_speak(
+            speech,
             text,
             style=style,
             dialect=dialect,

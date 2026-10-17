@@ -1,0 +1,235 @@
+{
+  "schema_version": 1,
+  "scene": "contact_family",
+  "voice_profile": "companion-v1",
+  "prompts": [
+    {
+      "id": "retry_later_recorded",
+      "text": "好的，我已经记录您稍后再次联系的意向。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "ask_message",
+      "text": "好的，您想让我转告什么？",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "message_recorded",
+      "text": "好的，我已经记下这条留言。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "message_unclear",
+      "text": "我没有听清留言内容，先不继续操作。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "no_followup_end",
+      "text": "好的，我先不继续操作。需要的时候您再告诉我。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "call_connected",
+      "text": "电话已经接通。现在可以和您的家人说话了。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "no_family_response_end",
+      "text": "暂时没有收到家人的回应，本次通话先结束。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "call_end",
+      "text": "好的，本次通话先到这里。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "request_unclear",
+      "text": "抱歉，我没有听清，请稍后再试。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "not_detected",
+      "text": "我目前没有识别到联系家人的需求。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "ask_contact_target",
+      "text": "好的，请问您想联系哪位家人？",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "authorized_contact_not_found",
+      "text": "抱歉，我没有找到对应的授权联系人。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "contact_confirmation_retry",
+      "text": "抱歉，我没有听清。您是要联系这位家人吗？",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "contact_confirmation_cancelled",
+      "text": "好的，那我先不联系。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "confirmation_unclear",
+      "text": "我没有听到明确确认，所以不会帮您拨打电话。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "prepare_check",
+      "text": "我先检查一下联系流程是否已经准备好。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "dial_authorization_prompt",
+      "text": "好的，联系人已经确认。拨号前还需要您最后确认。如果确定拨打，请说确认拨号；不拨打请说取消。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "dial_authorized",
+      "text": "好的，拨号确认通过。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "dial_cancelled",
+      "text": "好的，那我不拨打电话。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "dial_authorization_retry",
+      "text": "我还没有收到拨号确认。如果确定拨打，请完整说确认拨号；不拨打请说取消。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "real_phone_not_bound",
+      "text": "当前联系人还没有配置真实电话绑定，所以不会发起拨号。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "prepare_failed",
+      "text": "现在暂时不能继续联系家人，我们稍后再试。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "dial_confirmation_unclear",
+      "text": "我没有听到完整的确认拨号，所以不会拨打电话。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "safe_stub_complete",
+      "text": "好的，拨号确认已经完成。本次是安全测试，不会真正拨出电话。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "starting_call",
+      "text": "好的，正在为您联系家人，请稍候。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "start_call_failed",
+      "text": "抱歉，这次没有成功发起联系，请稍后再试。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_detected",
+      "text": "检测到您有联系家人的需求。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_target_missing",
+      "text": "检测到您有联系家人的需求，但还没有确定具体联系人。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_authorized_contact_missing",
+      "text": "检测到当前没有匹配到对应的授权联系人。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_confirmed",
+      "text": "检测到联系人已经确认。接下来进行拨号前准备。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_cancelled",
+      "text": "检测到您取消了本次联系家人的操作。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_confirmation_unclear",
+      "text": "检测到当前没有获得明确的联系确认，因此不会执行呼叫。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_prepare_failed",
+      "text": "检测到联系流程当前没有准备完成，不会继续执行拨号。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_prepare_complete",
+      "text": "检测到联系流程检查完成，现在进入最终拨号确认。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_dial_cancelled",
+      "text": "检测到最终拨号授权已取消，不会拨打电话。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_dial_unclear",
+      "text": "检测到没有获得明确的最终拨号授权，因此不会执行拨号。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_safe_stub_authorized",
+      "text": "检测到最终拨号授权已经通过。本次处于安全测试模式，不会发起真实外拨。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_real_authorized",
+      "text": "检测到最终拨号授权已经通过，正在发起联系请求。",
+      "style": "companion",
+      "dialect": "mandarin"
+    }
+  ]
+}

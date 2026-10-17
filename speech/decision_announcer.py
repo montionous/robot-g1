@@ -10,6 +10,7 @@ def announce_decision(
     *,
     enabled=False,
     dialect="mandarin",
+    prepared_prompts=None,
 ):
     """
     播报机器人刚刚完成的关键业务判断。
@@ -38,7 +39,20 @@ def announce_decision(
 
     record_speech_request('decision_announcer', message, source='announce_decision')
     try:
-        result=speech.speak_g1(message,style='companion',dialect=dialect)
+        if prepared_prompts is None:
+            result = speech.speak_g1(
+                message,
+                style='companion',
+                dialect=dialect,
+                cache=True,
+            )
+        else:
+            result = prepared_prompts.play_or_speak(
+                speech,
+                message,
+                style='companion',
+                dialect=dialect,
+            )
     except BaseException as error:
         record_speech_receipt('decision_announcer',message,source='announce_decision',error=error)
         raise

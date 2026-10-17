@@ -129,6 +129,32 @@ class SpeechClientCleanupTest(
         self.assertEqual(result["audio_path"], str(output))
         self.assertNotIn("audio_deleted", result)
 
+    def test_speak_g1_forwards_cache_to_tts_request(self):
+        calls = []
+
+        def speak(text, **kwargs):
+            calls.append((text, kwargs))
+            return {
+                "ok": True,
+                "audio_path": str(self.root / "speech.wav"),
+            }
+
+        self.client.speak = speak
+        self.client.play_g1 = lambda audio_path, **_kwargs: {
+            "played": str(audio_path),
+        }
+
+        result = self.client.speak_g1(
+            "固定回复",
+            style="companion",
+            dialect="shaanxi",
+            cache=True,
+        )
+
+        self.assertTrue(calls[0][1]["cache"])
+        self.assertFalse(calls[0][1]["play_on_host"])
+        self.assertTrue(result["g1_played"])
+
 
 if __name__ == "__main__":
     unittest.main()

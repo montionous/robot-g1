@@ -1,0 +1,187 @@
+{
+  "schema_version": 1,
+  "scene": "companion_entertainment",
+  "voice_profile": "companion-v1",
+  "prompts": [
+    {
+      "id": "opening_shaanxi",
+      "text": "您好，想听点啥？您跟我说一声，我给您放。",
+      "style": "companion",
+      "dialect": "shaanxi"
+    },
+    {
+      "id": "ask_category_shaanxi",
+      "text": "想听点啥？音乐、新闻、戏曲都行，您跟我说一声。",
+      "style": "companion",
+      "dialect": "shaanxi"
+    },
+    {
+      "id": "play_music_shaanxi",
+      "text": "好嘞，给您放点音乐，咱慢慢听。",
+      "style": "companion",
+      "dialect": "shaanxi"
+    },
+    {
+      "id": "next_music_shaanxi",
+      "text": "好嘞，给您换一首，咱接着听。",
+      "style": "companion",
+      "dialect": "shaanxi"
+    },
+    {
+      "id": "play_news_shaanxi",
+      "text": "成，咱听听新闻，看看有啥新消息。",
+      "style": "companion",
+      "dialect": "shaanxi"
+    },
+    {
+      "id": "play_opera_shaanxi",
+      "text": "好嘞，咱听段戏。",
+      "style": "companion",
+      "dialect": "shaanxi"
+    },
+    {
+      "id": "not_found_shaanxi",
+      "text": "这个我这儿暂时没有，咱换个别的听。",
+      "style": "companion",
+      "dialect": "shaanxi"
+    },
+    {
+      "id": "empty_shaanxi",
+      "text": "这个我这儿暂时没准备好，咱换个别的听。",
+      "style": "companion",
+      "dialect": "shaanxi"
+    },
+    {
+      "id": "end_shaanxi",
+      "text": "好嘞，那咱今儿就先听到这儿。您啥时候想听了，再叫我就成。",
+      "style": "companion",
+      "dialect": "shaanxi"
+    },
+    {
+      "id": "timeout_shaanxi",
+      "text": "那我先不打扰您了。您想听的时候，再叫我就成。",
+      "style": "companion",
+      "dialect": "shaanxi"
+    },
+    {
+      "id": "opening_mandarin",
+      "text": "您好，您想听音乐、新闻还是戏曲？也可以直接告诉我想听什么。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "ask_category_mandarin",
+      "text": "您想听音乐、新闻还是戏曲？",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "play_news_mandarin",
+      "text": "好的，为您播放一则新闻。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "next_news_mandarin",
+      "text": "好的，为您换一则新闻。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "no_more_mandarin",
+      "text": "这个类别暂时没有更多内容。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "end_mandarin",
+      "text": "好的，那我们先不听了。需要的时候再告诉我。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "unknown_category_mandarin",
+      "text": "我还不确定您想听音乐、新闻还是戏曲。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "unknown_query_mandarin",
+      "text": "我还不确定您具体想听什么。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_play_music_mandarin",
+      "text": "检测到您希望播放音乐。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_next_music_mandarin",
+      "text": "检测到您希望切换到下一首音乐。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_switch_news_mandarin",
+      "text": "检测到您希望从音乐切换到新闻。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_switch_opera_mandarin",
+      "text": "检测到您希望从新闻切换到戏曲。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_end_mandarin",
+      "text": "检测到您希望结束当前娱乐播放。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_normal_ask_category_mandarin",
+      "text": "检测到您有娱乐陪伴需求，但还没有选择音乐、新闻或戏曲。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_normal_play_category_mandarin",
+      "text": "检测到您选择了一个娱乐内容类别。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_normal_next_mandarin",
+      "text": "检测到您希望切换当前播放内容。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_normal_continue_mandarin",
+      "text": "检测到您希望继续播放同类内容。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_normal_stop_mandarin",
+      "text": "检测到您希望停止当前播放。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_normal_empty_mandarin",
+      "text": "检测到当前类别没有准备好可播放内容。",
+      "style": "companion",
+      "dialect": "mandarin"
+    },
+    {
+      "id": "decision_normal_not_found_mandarin",
+      "text": "检测到本地媒体库中没有匹配到您指定的内容。",
+      "style": "companion",
+      "dialect": "mandarin"
+    }
+  ]
+}

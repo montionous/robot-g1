@@ -689,6 +689,7 @@ class SpeechClient:
         volume: Optional[int] = None,
         emotion: Optional[str] = None,
         bridge_path=None,
+        cache: bool = False,
     ) -> dict:
         """
         队友最常用的“机器人说”。
@@ -717,6 +718,11 @@ class SpeechClient:
 
             # G1播放时，中间主机不要同时播。
             play_on_host=False,
+
+            # 动态回复仍可使用服务端的短期缓存；
+            # 赛前已准备好的固定话术由 prepared_audio.py
+            # 直接播放本地WAV，不会走这里。
+            cache=cache,
         )
 
         audio_path = (

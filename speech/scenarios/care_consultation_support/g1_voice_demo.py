@@ -28,6 +28,7 @@ sys.path.insert(
 
 
 from speech_client import SpeechClient
+from speech.prepared_audio import PreparedPromptCatalog
 from decision_announcer import announce_decision
 from companion_recording import (
     record_asr,
@@ -68,6 +69,11 @@ from care_profile_announcement import (
 
 from care_memory_announcement import (
     build_memory_announcement,
+)
+
+
+PREPARED_PROMPTS = PreparedPromptCatalog(
+    SCENE_DIR / "prepared_prompts.json"
 )
 
 
@@ -222,7 +228,8 @@ def speak(
 
     record_speech_request("care_consultation_support", text, source="speak")
     try:
-        result = speech.speak_g1(
+        result = PREPARED_PROMPTS.play_or_speak(
+            speech,
             text,
             style="companion",
             dialect=dialect,
@@ -1042,6 +1049,7 @@ def run_scene(
 
                     # 判断播报统一普通话。
                     dialect="mandarin",
+                    prepared_prompts=PREPARED_PROMPTS,
                 )
 
 

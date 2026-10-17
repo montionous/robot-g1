@@ -30,6 +30,7 @@ sys.path.insert(
 
 
 from speech_client import SpeechClient
+from speech.prepared_audio import PreparedPromptCatalog
 from decision_announcer import announce_decision
 from companion_recording import (
     record_asr,
@@ -47,6 +48,11 @@ from activity_controller import (
 
 from activity_llm_intent import (
     ActivityIntentLLM,
+)
+
+
+PREPARED_PROMPTS = PreparedPromptCatalog(
+    SCENE_DIR / "prepared_prompts.json"
 )
 
 
@@ -75,7 +81,8 @@ def speak(
 
     record_speech_request("social_activity_support", text, source="speak")
     try:
-        result = speech.speak_g1(
+        result = PREPARED_PROMPTS.play_or_speak(
+            speech,
             text,
             style="companion",
             dialect=dialect,
@@ -811,6 +818,7 @@ def run_scene(
                 enabled=
                     announce_decisions,
                 dialect=dialect,
+                prepared_prompts=PREPARED_PROMPTS,
             )
 
 
