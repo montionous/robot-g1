@@ -1004,71 +1004,81 @@ def run_scene(
                 result=result,
             )
 
-            # ---------------------------------------------
-            # 非语言动作
-            #
-            # 动作只跟随已经确定的业务结果，
-            # 不参与业务状态判断。
-            # ---------------------------------------------
+            execution_succeeded = False
 
-            if (
-                result.get("action")
-                == "play"
-                and result.get(
-                    "play_item"
+            try:
+                # ---------------------------------------------
+                # 非语言动作
+                #
+                # 动作只跟随已经确定的业务结果，
+                # 不参与业务状态判断。
+                # ---------------------------------------------
+
+                if (
+                    result.get("action")
+                    == "play"
+                    and result.get(
+                        "play_item"
+                    )
+                    and not presented_once
+                ):
+
+                    trigger_robot_action(
+                        actions,
+                        "present",
+                        source=(
+                            "companion_entertainment:"
+                            "play"
+                        ),
+                    )
+
+                    # present 录制动作起势较慢。
+                    # 先让手臂提前运动一段时间，
+                    # 再开始判断播报和机器人回复。
+                    time.sleep(
+                        PRESENT_LEAD_SECONDS
+                    )
+
+                    presented_once = True
+
+                if (
+                    result.get("action")
+                    == "stop"
+                ):
+
+                    trigger_robot_action(
+                        actions,
+                        "goodbye",
+                        source=(
+                            "companion_entertainment:"
+                            "end"
+                        ),
+                    )
+
+                apply_result(
+                    speech=speech,
+                    player=player,
+                    command=command,
+                    result=result,
+                    announce_decisions=
+                        announce_decisions,
+                    dialect=dialect,
                 )
-                and not presented_once
-            ):
 
-                trigger_robot_action(
-                    actions,
-                    "present",
-                    source=(
-                        "companion_entertainment:"
-                        "play"
-                    ),
+                execution_succeeded = (
+                    result.get("action") not in (
+                        "empty",
+                        "not_found",
+                    )
                 )
 
-                # present 录制动作起势较慢。
-                # 先让手臂提前运动一段时间，
-                # 再开始判断播报和机器人回复。
-                time.sleep(
-                    PRESENT_LEAD_SECONDS
+            finally:
+                # 播放、TTS 或动作发生异常时，不能把需求一直留在
+                # in_progress；finish 本身是非阻塞的。
+                needs.finish(
+                    need_id,
+                    succeeded=execution_succeeded,
                 )
-
-                presented_once = True
-
-            if (
-                result.get("action")
-                == "stop"
-            ):
-
-                trigger_robot_action(
-                    actions,
-                    "goodbye",
-                    source=(
-                        "companion_entertainment:"
-                        "end"
-                    ),
-                )
-
-            apply_result(
-                speech=speech,
-                player=player,
-                command=command,
-                result=result,
-                announce_decisions=
-                    announce_decisions,
-                dialect=dialect,
-            )
-
-            needs.finish(
-                need_id,
-                succeeded=result.get("action") not in (
-                    "empty",
-                    "not_found",
-                ),
-            )
 
             if controller.active:
 

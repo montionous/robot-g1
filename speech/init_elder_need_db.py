@@ -147,6 +147,23 @@ def main():
     )
 
 
+    # 用于活动推荐和娱乐偏好读取：
+    # 同一位老人按类别、处理结果回看历史需求。
+    conn.execute(
+        """
+        CREATE INDEX IF NOT EXISTS
+            idx_elder_need_elder_category_status_created
+
+        ON elder_need (
+            elderly_id,
+            need_category,
+            status,
+            created_at DESC
+        )
+        """
+    )
+
+
     conn.commit()
     conn.close()
 

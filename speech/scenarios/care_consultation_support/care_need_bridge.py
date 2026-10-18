@@ -94,6 +94,8 @@ class CareNeedBridge:
         )
 
         self.need_id = None
+        self._initial_care_domain = None
+        self._initial_risk_level = None
 
 
     def _need_info(
@@ -153,6 +155,12 @@ class CareNeedBridge:
             care_domain
         )
 
+        if self._initial_care_domain is None:
+            self._initial_care_domain = care_domain
+
+        if self._initial_risk_level is None:
+            self._initial_risk_level = risk_level
+
 
         details = {
             "care_domain":
@@ -168,6 +176,18 @@ class CareNeedBridge:
 
             "assistance_request_id":
                 assistance_request_id,
+
+            # elder_need 是供跨场景和控制台快速查看的摘要。
+            # 主咨询记录仍保留完整逐轮对话；这里保留当前轮，
+            # 让工作人员看到最新的护理表达和风险状态。
+            "latest_raw_text":
+                str(raw_text or "").strip(),
+
+            "initial_care_domain":
+                self._initial_care_domain,
+
+            "initial_risk_level":
+                self._initial_risk_level,
         }
 
 
@@ -260,6 +280,12 @@ class CareNeedBridge:
             status=
                 "in_progress",
 
+            raw_text=
+                str(raw_text or "").strip(),
+
+            source_round_no=
+                round_no,
+
             details=
                 details,
 
@@ -293,6 +319,9 @@ class CareNeedBridge:
         row = get_need(
             self.need_id
         )
+
+        if row is None:
+            return None
 
         old_details = (
             row.get(

@@ -1,5 +1,10 @@
 # Elder Speech Service v1
 
+## 跨场景老人需求
+
+四个现用场景的共享需求记录、活动偏好使用方式和隐私边界见
+[ELDER_NEED_INTEGRATION.md](ELDER_NEED_INTEGRATION.md)。
+
 第一阶段先在 Windows 验证 Qwen-Audio-3.0-TTS-Flash。
 
 ## 1. 环境

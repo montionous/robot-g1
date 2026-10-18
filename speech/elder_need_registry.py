@@ -74,6 +74,44 @@ def connect():
     return conn
 
 
+def elderly_is_enabled(
+    elderly_id,
+):
+    """Return whether an enabled elder exists in the shared database."""
+
+    try:
+        value = int(
+            elderly_id
+        )
+
+    except (
+        TypeError,
+        ValueError,
+    ):
+        return False
+
+
+    with connect() as conn:
+
+        row = conn.execute(
+            """
+            SELECT 1
+
+            FROM elderly_person
+
+            WHERE id = ?
+              AND enabled = 1
+
+            LIMIT 1
+            """,
+            (
+                value,
+            ),
+        ).fetchone()
+
+    return row is not None
+
+
 def _json_dump(
     value,
 ):
@@ -103,11 +141,21 @@ def _row_to_dict(
     if raw:
 
         try:
+            details = json.loads(
+                raw
+            )
 
+            # details_json 是给跨场景模块读取的键值对象。
+            # 历史脏数据不能让推荐或护理同步在 .get / ** 展开时崩溃。
             result[
                 "details"
-            ] = json.loads(
-                raw
+            ] = (
+                details
+                if isinstance(
+                    details,
+                    dict,
+                )
+                else None
             )
 
         except Exception:
@@ -308,10 +356,12 @@ def update_need(
     need_id: int,
     *,
     summary=None,
+    raw_text=None,
     priority=None,
     status=None,
     details=None,
     handled_by=None,
+    source_round_no=None,
 ):
 
     if (
@@ -348,6 +398,17 @@ def update_need(
 
         values.append(
             summary
+        )
+
+
+    if raw_text is not None:
+
+        fields.append(
+            "raw_text = ?"
+        )
+
+        values.append(
+            raw_text
         )
 
 
@@ -416,6 +477,19 @@ def update_need(
 
         values.append(
             handled_by
+        )
+
+
+    if source_round_no is not None:
+
+        fields.append(
+            "source_round_no = ?"
+        )
+
+        values.append(
+            int(
+                source_round_no
+            )
         )
 
 
@@ -575,6 +649,7 @@ def get_elder_need_history(
     need_category=None,
     need_code=None,
     source_scene=None,
+    status=None,
     limit=20,
 ):
 
@@ -617,6 +692,17 @@ def get_elder_need_history(
 
         values.append(
             source_scene
+        )
+
+
+    if status is not None:
+
+        where.append(
+            "status = ?"
+        )
+
+        values.append(
+            status
         )
 
 
@@ -663,6 +749,7 @@ def get_need_frequency(
     elderly_id: int,
     *,
     need_category=None,
+    status=None,
     limit=20,
 ):
 
@@ -683,6 +770,17 @@ def get_need_frequency(
 
         values.append(
             need_category
+        )
+
+
+    if status is not None:
+
+        where.append(
+            "status = ?"
+        )
+
+        values.append(
+            status
         )
 
 

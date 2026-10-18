@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+from contextvars import ContextVar
+from functools import wraps
 import sys
 import time
 from pathlib import Path
@@ -48,6 +50,10 @@ from activity_controller import (
 
 from activity_llm_intent import (
     ActivityIntentLLM,
+)
+
+from activity_need_integration import (
+    ActivityNeedSession,
 )
 
 
@@ -476,6 +482,44 @@ def build_decision_message(
     return None
 
 
+_ACTIVE_ACTIVITY_NEED = ContextVar(
+    "active_activity_need",
+    default=None,
+)
+
+
+def _finalize_activity_need_flow(func):
+    """Cancel only an unanswered registration intent on scene exit."""
+
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        previous_need = _ACTIVE_ACTIVITY_NEED.get()
+
+        try:
+            return func(*args, **kwargs)
+
+        except KeyboardInterrupt:
+            needs = _ACTIVE_ACTIVITY_NEED.get()
+            if needs is not None:
+                needs.close(outcome="scene_interrupted")
+            raise
+
+        except Exception:
+            needs = _ACTIVE_ACTIVITY_NEED.get()
+            if needs is not None:
+                needs.close(outcome="scene_interrupted")
+            raise
+
+        finally:
+            needs = _ACTIVE_ACTIVITY_NEED.get()
+            if needs is not None:
+                needs.close(outcome="scene_interrupted")
+            _ACTIVE_ACTIVITY_NEED.set(previous_need)
+
+    return wrapped
+
+
+@_finalize_activity_need_flow
 def run_scene(
     *,
     elder_id,
@@ -483,6 +527,7 @@ def run_scene(
     dialect,
     listen_seconds,
     announce_decisions,
+    record_elder_needs=True,
 ):
 
     print()
@@ -511,6 +556,13 @@ def run_scene(
             elder_name=elder_name,
         )
     )
+
+    needs = ActivityNeedSession(
+        elderly_id=elder_id,
+        record=record_elder_needs,
+    )
+    _ACTIVE_ACTIVITY_NEED.set(needs)
+    controller.preference_ranker = needs.rank_recommendations
 
     try:
 
@@ -787,6 +839,14 @@ def run_scene(
             ],
         )
 
+        # 只记录控制器已经接受的业务动作；ASR 噪声、低置信度
+        # 以及无关输入不会进入跨场景需求库。
+        needs.record_result(
+            raw_text=text,
+            result=result,
+            controller=controller,
+        )
+
         selected = result.get(
             "selected"
         )
@@ -890,6 +950,12 @@ def main():
     )
 
     parser.add_argument(
+        "--no-need-write",
+        action="store_true",
+        help="只读取历史活动偏好，不向共享老人需求库写入新记录",
+    )
+
+    parser.add_argument(
         "--record-log",
         type=Path,
         help="care_session_record_v1 journal path",
@@ -918,6 +984,7 @@ def main():
             dialect=args.dialect,
             listen_seconds=args.listen_seconds,
             announce_decisions=args.announce_decisions,
+            record_elder_needs=not args.no_need_write,
         )
 
     run_recorded_scene(

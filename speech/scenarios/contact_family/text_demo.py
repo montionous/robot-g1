@@ -1,9 +1,24 @@
 from __future__ import annotations
 
 import argparse
+from contextvars import ContextVar
+from functools import wraps
+import sys
+from pathlib import Path
+
+
+SCENE_DIR = Path(__file__).resolve().parent
+SPEECH_ROOT = SCENE_DIR.parents[1]
+
+if str(SPEECH_ROOT) not in sys.path:
+    sys.path.insert(0, str(SPEECH_ROOT))
 
 from contact_family_logic import (
     ContactFamilySession,
+)
+
+from contact_need_integration import (
+    ContactFamilyNeedSession,
 )
 
 from db_access import (
@@ -22,6 +37,45 @@ def print_stage(
     )
 
 
+
+_ACTIVE_CONTACT_NEED = ContextVar(
+    "active_contact_text_demo_need",
+    default=None,
+)
+
+
+def _finalize_contact_need_flow(func):
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        previous_need = _ACTIVE_CONTACT_NEED.get()
+
+        try:
+            return func(*args, **kwargs)
+
+        except KeyboardInterrupt:
+            needs = _ACTIVE_CONTACT_NEED.get()
+            if needs is not None:
+                needs.close(outcome="scene_interrupted")
+            raise
+
+        except Exception:
+            needs = _ACTIVE_CONTACT_NEED.get()
+            if needs is not None:
+                needs.finish(
+                    status="failed",
+                    outcome="scene_failed",
+                )
+            raise
+
+        finally:
+            needs = _ACTIVE_CONTACT_NEED.get()
+            if needs is not None:
+                needs.close(outcome="scene_interrupted")
+            _ACTIVE_CONTACT_NEED.set(previous_need)
+
+    return wrapped
+
+@_finalize_contact_need_flow
 def main():
 
     parser = argparse.ArgumentParser()
@@ -42,6 +96,12 @@ def main():
     parser.add_argument(
         "--confirmation",
         default="对",
+    )
+
+    parser.add_argument(
+        "--no-need-write",
+        action="store_true",
+        help="不向共享老人需求库写入联系家人需求",
     )
 
     args = parser.parse_args()
@@ -79,6 +139,13 @@ def main():
         args.elderly_id
     )
 
+    needs = ContactFamilyNeedSession(
+        elderly_id=args.elderly_id,
+        record=not args.no_need_write,
+    )
+
+    _ACTIVE_CONTACT_NEED.set(needs)
+
     result = session.handle_request(
         args.utterance
     )
@@ -102,6 +169,15 @@ def main():
         == "CONTACT_NOT_FOUND"
     ):
 
+        needs.begin(
+            raw_text=args.utterance,
+            contact=None,
+        )
+        needs.finish(
+            status="failed",
+            outcome="contact_not_found",
+        )
+
         print_stage(
             "🤖",
             "机器人",
@@ -124,6 +200,11 @@ def main():
         )
 
         return
+
+    needs.begin(
+        raw_text=args.utterance,
+        contact=session.contact,
+    )
 
     print()
     print_stage(
@@ -202,6 +283,20 @@ def main():
         )
         is not True
     ):
+
+        needs.finish(
+            status=(
+                "cancelled"
+                if confirm.get("confirmed") is False
+                else "failed"
+            ),
+            outcome=(
+                "contact_confirmation_cancelled"
+                if confirm.get("confirmed") is False
+                else "contact_confirmation_unclear"
+            ),
+            contact=session.contact,
+        )
 
         create_call_log(
             elderly_id=
@@ -283,6 +378,12 @@ def main():
 
         call_status=
             "connected_demo",
+    )
+
+    needs.finish(
+        status="completed",
+        outcome="connected_demo",
+        contact=session.contact,
     )
 
     print()

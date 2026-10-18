@@ -93,6 +93,10 @@ class ShowcaseController:
             recent_resolver
         )
 
+        # 正常版和展示版都可以由共享需求层注入排序函数。
+        # 不注入或读取失败时，仍使用日程数据库的原始顺序。
+        self.preference_ranker = None
+
         self.elder_id = (
             elder_id
         )
@@ -514,7 +518,9 @@ class ShowcaseController:
             .resolve(
                 text,
                 days=7,
-                list_limit=3,
+                # 先取得足够多的候选，再按共享偏好排序并截取三项；
+                # 否则第 4 项以后的常参加活动永远没有机会被优先展示。
+                list_limit=50,
             )
         )
 
@@ -525,6 +531,20 @@ class ShowcaseController:
         reply = result.get(
             "reply"
         )
+
+        # recent 查询会早于常规 _query 返回。先重置筛选上下文，避免
+        # not_found 被活动需求库误记成上一轮的筛选条件。
+        self.last_filters = {
+            "scope": (
+                "recent_specific"
+                if mode in {
+                    "specific",
+                    "specific_no_session",
+                    "specific_not_found",
+                }
+                else "recent"
+            )
+        }
 
         # ---------------------------------------------
         # 泛查询：
@@ -540,10 +560,19 @@ class ShowcaseController:
                 or []
             )
 
-            self.last_filters = {
-                "scope":
-                    "recent",
-            }
+            sessions = self._rank_generic_recommendations(
+                sessions,
+                self.last_filters,
+            )[:3]
+
+            formatter = getattr(
+                self.recent_resolver,
+                "build_generic_list_reply",
+                None,
+            )
+
+            if sessions and callable(formatter):
+                reply = formatter(sessions)
 
             self.last_results = (
                 sessions
@@ -607,11 +636,6 @@ class ShowcaseController:
 
             if target is not None:
 
-                self.last_filters = {
-                    "scope":
-                        "recent_specific",
-                }
-
                 self.last_results = [
                     target
                 ]
@@ -660,6 +684,50 @@ class ShowcaseController:
         )
 
 
+    def _rank_generic_recommendations(
+        self,
+        results,
+        filters,
+    ):
+        ranker = self.preference_ranker
+
+        if not callable(ranker):
+            return results
+
+        try:
+            ranked = list(
+                ranker(
+                    results,
+                    filters=filters,
+                )
+            )
+
+            original_ids = [
+                item.get("session_id")
+                for item in results
+            ]
+            ranked_ids = [
+                item.get("session_id")
+                for item in ranked
+            ]
+
+            if (
+                len(ranked) == len(results)
+                and sorted(ranked_ids) == sorted(original_ids)
+            ):
+                return ranked
+
+            print("历史活动偏好返回异常，保留原推荐顺序", flush=True)
+
+        except Exception as exc:
+            print(
+                f"历史活动偏好不可用，保留原推荐顺序：{exc!r}",
+                flush=True,
+            )
+
+        return results
+
+
     def _query(
         self,
         text,
@@ -698,17 +766,28 @@ class ShowcaseController:
             )
         )
 
-        self.last_filters = (
-            filters
-        )
-
-        self.last_results = [
+        results = [
             item
             for item in results
             if unavailable_reason(
                 item
             ) is None
-        ][:3]
+        ]
+
+        if not (
+            filters.get("category")
+            or filters.get("keyword")
+        ):
+            results = self._rank_generic_recommendations(
+                results,
+                filters,
+            )
+
+        self.last_filters = (
+            filters
+        )
+
+        self.last_results = results[:3]
 
         self.selected = None
 

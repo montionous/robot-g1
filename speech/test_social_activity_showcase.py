@@ -29,6 +29,10 @@ from showcase_controller import (
     ShowcaseController,
 )
 
+from showcase_recent_query import (
+    RecentActivityQueryResolver,
+)
+
 from showcase_intent import (
     classify_showcase_intent,
 )
@@ -252,6 +256,20 @@ class FakeRepo:
         )
 
 
+class StubRecentResolver:
+    build_generic_list_reply = staticmethod(
+        RecentActivityQueryResolver.build_generic_list_reply
+    )
+
+    def __init__(self, result):
+        self.result = dict(result)
+        self.list_limits = []
+
+    def resolve(self, text, *, days, list_limit):
+        self.list_limits.append(list_limit)
+        return dict(self.result)
+
+
 class StubLLM:
 
     def __init__(
@@ -361,6 +379,72 @@ class ShowcaseTest(
         self.assertNotIn(
             "不需要专业唱歌基础",
             result["reply"],
+        )
+
+    def test_recent_generic_query_ranks_full_candidate_set_and_rebuilds_reply(self):
+        repo = FakeRepo()
+        sessions = []
+
+        for index in range(4):
+            item = dict(repo.items[index % 2])
+            item["session_id"] = 201 + index
+            item["activity_id"] = 11 + index
+            item["name"] = f"活动{index + 1}"
+            sessions.append(item)
+
+        resolver = StubRecentResolver(
+            {
+                "mode": "generic_list",
+                "sessions": sessions,
+                "reply": "旧顺序播报",
+            }
+        )
+        controller = ShowcaseController(
+            elder_id=1,
+            elder_name="王大爷",
+            repo=repo,
+            recent_resolver=resolver,
+        )
+        calls = []
+
+        def ranker(results, *, filters):
+            calls.append(dict(filters))
+            return [results[-1], *results[:-1]]
+
+        controller.preference_ranker = ranker
+        result = controller._query_recent("最近有什么活动")
+
+        self.assertEqual(resolver.list_limits, [50])
+        self.assertEqual(calls, [{"scope": "recent"}])
+        self.assertEqual(
+            [item["session_id"] for item in controller.last_results],
+            [204, 201, 202],
+        )
+        self.assertIn("活动4", result["reply"])
+        self.assertIn("活动1", result["reply"])
+        self.assertIn("活动2", result["reply"])
+        self.assertNotIn("活动3", result["reply"])
+
+    def test_recent_specific_miss_resets_need_recording_filters(self):
+        controller = ShowcaseController(
+            elder_id=1,
+            elder_name="王大爷",
+            repo=FakeRepo(),
+            recent_resolver=StubRecentResolver(
+                {
+                    "mode": "specific_not_found",
+                    "reply": "最近没有这类活动。",
+                }
+            ),
+        )
+        controller.last_filters = {"category": "music"}
+
+        result = controller._query_recent("最近有没有太极活动")
+
+        self.assertEqual(result["action"], "not_found")
+        self.assertEqual(
+            controller.last_filters,
+            {"scope": "recent_specific"},
         )
 
     def test_wrong_detail_before_selection_ignored(self):

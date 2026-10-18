@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import json
 import re
 import sqlite3
-from pathlib import Path
 from uuid import uuid4
 
-from elder_need_registry import create_need, update_need
+from elder_need_registry import (
+    create_need,
+    elderly_is_enabled,
+    get_elder_need_history,
+    update_need,
+)
 from local_media_library import clean_search_query, normalize
 
-
-DB_PATH = (
-    Path(__file__).resolve().parents[2]
-    / "data" / "elder_companion.db"
-)
 
 SCENE = "COMPANION_ENTERTAINMENT"
 
@@ -87,21 +85,10 @@ class EntertainmentNeedSession:
             print("共享需求：未指定老人ID，暂不关联老人", flush=True)
             return
 
-        if not DB_PATH.is_file():
-            print(f"共享需求：数据库不存在 {DB_PATH}", flush=True)
-            return
-
         try:
-            with self._read_connection() as conn:
-                row = conn.execute(
-                    """
-                    SELECT id FROM elderly_person
-                    WHERE id = ? AND enabled = 1
-                    """,
-                    (int(elderly_id),),
-                ).fetchone()
-
-            if row is None:
+            if not elderly_is_enabled(
+                elderly_id
+            ):
                 print(f"共享需求：老人ID {elderly_id} 不存在或未启用", flush=True)
                 return
 
@@ -118,45 +105,30 @@ class EntertainmentNeedSession:
             flush=True,
         )
 
-    @staticmethod
-    def _read_connection():
-        return sqlite3.connect(
-            DB_PATH.resolve().as_uri() + "?mode=ro",
-            uri=True,
-        )
-
     def preferred_item(self, category):
-        """只使用同一老人历史上主动点播且已成功处理的内容。"""
+        """按主动点播次数和最近一次成功播放选择本地可用内容。"""
 
         if self.elderly_id is None or category not in {"music", "opera"}:
             return None
 
         try:
-            with self._read_connection() as conn:
-                rows = conn.execute(
-                    """
-                    SELECT details_json
-                    FROM elder_need
-                    WHERE elderly_id = ?
-                      AND need_category = 'entertainment'
-                      AND need_code = ?
-                      AND status = 'completed'
-                    ORDER BY id DESC
-                    LIMIT 100
-                    """,
-                    (
-                        self.elderly_id,
-                        f"play_{category}",
-                    ),
-                ).fetchall()
-
             available = {
                 normalize(item.title): item
                 for item in self.library.list_items(category)
             }
 
-            for (details_json,) in rows:
-                details = json.loads(details_json or "{}")
+            scores = {}
+
+            for position, row in enumerate(
+                get_elder_need_history(
+                    self.elderly_id,
+                    need_category="entertainment",
+                    need_code=f"play_{category}",
+                    status="completed",
+                    limit=100,
+                )
+            ):
+                details = row.get("details") or {}
 
                 if details.get("request_mode") != "explicit":
                     continue
@@ -166,14 +138,41 @@ class EntertainmentNeedSession:
                 if not isinstance(title, str) or not title.strip():
                     continue
 
-                item = available.get(normalize(title))
+                item_key = normalize(title)
 
-                if item is not None:
-                    print(
-                        f"历史点播优先：{category} / {item.title}",
-                        flush=True,
-                    )
-                    return item
+                if item_key not in available:
+                    continue
+
+                score = scores.setdefault(
+                    item_key,
+                    {
+                        "count": 0,
+                        "last_position": position,
+                    },
+                )
+                score["count"] += 1
+                score["last_position"] = min(
+                    score["last_position"],
+                    position,
+                )
+
+            if scores:
+                preferred_key = min(
+                    scores,
+                    key=lambda key: (
+                        -scores[key]["count"],
+                        scores[key]["last_position"],
+                        key,
+                    ),
+                )
+                item = available[preferred_key]
+                print(
+                    "历史点播优先："
+                    f"{category} / {item.title} "
+                    f"(成功点播 {scores[preferred_key]['count']} 次)",
+                    flush=True,
+                )
+                return item
 
         except (sqlite3.Error, ValueError, TypeError) as exc:
             print(

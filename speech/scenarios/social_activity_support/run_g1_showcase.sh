@@ -31,6 +31,8 @@ echo
 
 exec "$PYTHON" \
   scenarios/social_activity_support/g1_showcase_demo.py \
+  --elder-id "${G1_ELDERLY_ID:-1}" \
   --listen-seconds 5.0 \
   --state-timeout 0 \
-  --announce-decisions
+  --announce-decisions \
+  "$@"

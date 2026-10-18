@@ -1143,61 +1143,67 @@ def run_scene(
                 showcase.state,
             )
 
-            # ---------------------------------------------
-            # 非语言动作
-            #
-            # 只有状态机已经确认的合法动作
-            # 才允许触发手势。
-            # ---------------------------------------------
+            execution_succeeded = False
 
-            if (
-                action == PLAY_MUSIC
-                and not presented_once
-            ):
+            try:
+                # ---------------------------------------------
+                # 非语言动作
+                #
+                # 只有状态机已经确认的合法动作
+                # 才允许触发手势。
+                # ---------------------------------------------
 
-                trigger_robot_action(
-                    actions,
-                    "present",
-                    source=(
-                        "companion_entertainment_showcase:"
-                        "play"
-                    ),
+                if (
+                    action == PLAY_MUSIC
+                    and not presented_once
+                ):
+
+                    trigger_robot_action(
+                        actions,
+                        "present",
+                        source=(
+                            "companion_entertainment_showcase:"
+                            "play"
+                        ),
+                    )
+
+                    # present 录制动作起势较慢。
+                    # 先让手臂提前运动一段时间，
+                    # 再开始判断播报和机器人回复。
+                    time.sleep(
+                        PRESENT_LEAD_SECONDS
+                    )
+
+                    presented_once = True
+
+                if action == END:
+
+                    trigger_robot_action(
+                        actions,
+                        "goodbye",
+                        source=(
+                            "companion_entertainment_showcase:"
+                            "end"
+                        ),
+                    )
+
+                execute_action(
+                    action=action,
+                    speech=speech,
+                    entertainment=
+                        entertainment,
+                    player=player,
+                    announce_decisions=
+                        announce_decisions,
                 )
 
-                # present 录制动作起势较慢。
-                # 先让手臂提前运动一段时间，
-                # 再开始判断播报和机器人回复。
-                time.sleep(
-                    PRESENT_LEAD_SECONDS
+                execution_succeeded = True
+
+            finally:
+                needs.finish(
+                    need_id,
+                    succeeded=execution_succeeded,
                 )
-
-                presented_once = True
-
-            if action == END:
-
-                trigger_robot_action(
-                    actions,
-                    "goodbye",
-                    source=(
-                        "companion_entertainment_showcase:"
-                        "end"
-                    ),
-                )
-
-            execute_action(
-                action=action,
-                speech=speech,
-                entertainment=
-                    entertainment,
-                player=player,
-                announce_decisions=
-                    announce_decisions,
-            )
-
-            needs.finish(
-                need_id,
-                succeeded=True,
-            )
 
             # 新的媒体已经启动以后，
             # 再重新打开持续ASR。

@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+from contextvars import ContextVar
+from functools import wraps
 import math
 import struct
 import subprocess
@@ -43,6 +45,10 @@ from call_service import (
 
 from contact_family_logic import (
     ContactFamilySession,
+)
+
+from contact_need_integration import (
+    ContactFamilyNeedSession,
 )
 
 from call_backend import (
@@ -1032,6 +1038,48 @@ def perform_mock_call(
 # 场景主流程
 # =========================================================
 
+
+
+_ACTIVE_CONTACT_NEED = ContextVar(
+    "active_contact_need",
+    default=None,
+)
+
+
+def _finalize_contact_need_flow(func):
+    """Close only a request left unfinished by this scene invocation."""
+
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        previous_need = _ACTIVE_CONTACT_NEED.get()
+
+        try:
+            return func(*args, **kwargs)
+
+        except KeyboardInterrupt:
+            needs = _ACTIVE_CONTACT_NEED.get()
+            if needs is not None:
+                needs.close(outcome="scene_interrupted")
+            raise
+
+        except Exception:
+            needs = _ACTIVE_CONTACT_NEED.get()
+            if needs is not None:
+                # 错误详情不进入共享需求库；只保留受控的高层结果。
+                needs.finish(
+                    status="failed",
+                    outcome="scene_failed",
+                )
+            raise
+
+        finally:
+            needs = _ACTIVE_CONTACT_NEED.get()
+            if needs is not None:
+                needs.close(outcome="scene_interrupted")
+            _ACTIVE_CONTACT_NEED.set(previous_need)
+
+    return wrapped
+@_finalize_contact_need_flow
 def run_scene(
     *,
     elderly_id,
@@ -1046,6 +1094,7 @@ def run_scene(
     call_rounds,
     elder_turn_seconds,
     family_turn_timeout,
+    record_elder_needs=True,
 ):
     banner(
         "CONTACT_FAMILY · G1 全语音演示"
@@ -1097,6 +1146,13 @@ def run_scene(
             f"(ID={elderly_id})"
         ),
     )
+
+    needs = ContactFamilyNeedSession(
+        elderly_id=elderly_id,
+        record=record_elder_needs,
+    )
+
+    _ACTIVE_CONTACT_NEED.set(needs)
 
     # -----------------------------------------------------
     # 1. 老人提出联系需求
@@ -1219,6 +1275,17 @@ def run_scene(
         != "AWAITING_CONFIRMATION"
     ):
 
+        # 已确认“联系家人”的意图，但没有找到授权联系人。
+        # 共享记录不写电话号码或后续拨号授权语音。
+        needs.begin(
+            raw_text=request_text,
+            contact=None,
+        )
+        needs.finish(
+            status="failed",
+            outcome="contact_not_found",
+        )
+
         announce_decision(
             speech,
             "当前没有匹配到对应的授权联系人。",
@@ -1257,6 +1324,11 @@ def run_scene(
     # -----------------------------------------------------
     # 5. 数据库联系人匹配成功
     # -----------------------------------------------------
+
+    needs.begin(
+        raw_text=request_text,
+        contact=session.contact,
+    )
 
     stage(
         "🔍",
@@ -1354,6 +1426,12 @@ def run_scene(
 
     if confirmation is False:
 
+        needs.finish(
+            status="cancelled",
+            outcome="contact_confirmation_cancelled",
+            contact=session.contact,
+        )
+
         announce_decision(
             speech,
             "您取消了本次联系家人的操作。",
@@ -1398,6 +1476,12 @@ def run_scene(
     # -----------------------------------------------------
 
     if confirmation is not True:
+
+        needs.finish(
+            status="failed",
+            outcome="contact_confirmation_unclear",
+            contact=session.contact,
+        )
 
         announce_decision(
             speech,
@@ -1500,6 +1584,12 @@ def run_scene(
 
         if not binding["available"]:
 
+            needs.finish(
+                status="failed",
+                outcome="real_phone_binding_blocked",
+                contact=session.contact,
+            )
+
             say(
                 speech,
                 (
@@ -1547,6 +1637,12 @@ def run_scene(
     )
 
     if not phone_prepare["ready"]:
+
+        needs.finish(
+            status="failed",
+            outcome="phone_prepare_failed",
+            contact=session.contact,
+        )
 
         announce_decision(
             speech,
@@ -1667,6 +1763,12 @@ def run_scene(
 
     if dial_authorized is False:
 
+        needs.finish(
+            status="cancelled",
+            outcome="dial_authorization_cancelled",
+            contact=session.contact,
+        )
+
         stage(
             "",
             "拨号授权",
@@ -1711,6 +1813,12 @@ def run_scene(
     # -----------------------------------------------------
 
     if dial_authorized is not True:
+
+        needs.finish(
+            status="failed",
+            outcome="dial_authorization_unclear",
+            contact=session.contact,
+        )
 
         stage(
             "",
@@ -1881,10 +1989,9 @@ def run_scene(
                 dialect=dialect,
             )
 
-            call_status = (
-                operation_state
-                or "dial_failed"
-            )
+            # operation_state 来自外部调用结果，不能把其原文（可能
+            # 包含后端诊断或敏感字段）写进场景/共享记录。
+            call_status = "dial_failed"
 
     # 不把最终授权语句写进日志。
     log_text = request_text
@@ -1903,6 +2010,22 @@ def run_scene(
         confirmed=True,
         call_status=
             call_status,
+    )
+
+    # “请求已接受”不等于家属已经接通；保留 in_progress 让
+    # 工作人员可以从共享需求库继续跟进。safe_stub 同样不能冒充
+    # 已完成的真实联络。
+    needs.finish(
+        status=(
+            "in_progress"
+            if call_status in {
+                "accepted",
+                "dial_authorized_safe_stub",
+            }
+            else "failed"
+        ),
+        outcome=call_status,
+        contact=session.contact,
     )
 
     stage(
@@ -2035,6 +2158,12 @@ def main():
     )
 
     parser.add_argument(
+        "--no-need-write",
+        action="store_true",
+        help="不向共享老人需求库写入联系家人需求",
+    )
+
+    parser.add_argument(
         "--call-backend",
         choices=[
             "safe_stub",
@@ -2084,6 +2213,7 @@ def main():
             family_turn_timeout=args.family_turn_timeout,
             announce_decisions=args.announce_decisions,
             call_backend=args.call_backend,
+            record_elder_needs=not args.no_need_write,
         )
 
     run_recorded_scene(

@@ -76,6 +76,10 @@ from showcase_protocol import (
     SELECT,
 )
 
+from activity_need_integration import (
+    ActivityNeedSession,
+)
+
 
 ANNOUNCER_DIALECT = "mandarin"
 
@@ -355,6 +359,7 @@ def run_scene(
     no_llm,
     robot_actions,
     confirm_g1_actions,
+    record_elder_needs=False,
 ):
     print()
     print(
@@ -382,6 +387,14 @@ def run_scene(
             elder_name=elder_name,
         )
     )
+
+    # 比赛版默认只读，避免演示录音污染正式需求历史。
+    # 明确传入 --record-elder-needs 时才写入。
+    needs = ActivityNeedSession(
+        elderly_id=elder_id,
+        record=record_elder_needs,
+    )
+    controller.preference_ranker = needs.rank_recommendations
 
     preflight_activity_data(
         controller
@@ -678,6 +691,12 @@ def run_scene(
             }:
                 continue
 
+            needs.record_result(
+                raw_text=text,
+                result=result,
+                controller=controller,
+            )
+
             if action == "recommend":
                 actions.play(
                     "present",
@@ -743,6 +762,11 @@ def run_scene(
             "用户中断场景"
         )
 
+    finally:
+        # 语音、动作或数据库读取异常时，也要撤销尚未得到确认的
+        # 报名意愿，避免控制台留下永久 in_progress 记录。
+        needs.close(outcome="scene_interrupted")
+
     print()
     log(
         "场景结束",
@@ -805,6 +829,12 @@ def main():
     parser.add_argument(
         "--no-llm",
         action="store_true",
+    )
+
+    parser.add_argument(
+        "--record-elder-needs",
+        action="store_true",
+        help="明确允许比赛展示版写入共享老人需求库",
     )
 
     parser.add_argument(
@@ -884,6 +914,9 @@ def main():
 
         confirm_g1_actions=
             args.confirm_g1_actions,
+
+        record_elder_needs=
+            args.record_elder_needs,
     )
 
 

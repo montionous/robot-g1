@@ -38,10 +38,13 @@ class ActivityController:
         *,
         elder_id=1,
         elder_name="王大爷",
+        repo=None,
     ):
 
         self.repo = (
-            ActivityRepository()
+            repo
+            if repo is not None
+            else ActivityRepository()
         )
 
         self.elder_id = elder_id
@@ -57,6 +60,10 @@ class ActivityController:
 
         self.awaiting_join_confirmation = False
         self.pending_join_mode = None
+
+        # 由 activity_need_integration 注入。控制器本身不依赖
+        # 跨场景数据库，读取失败时仍按原有日程顺序推荐。
+        self.preference_ranker = None
 
 
     def _result(
@@ -277,6 +284,55 @@ class ActivityController:
         )
 
 
+    def _rank_generic_recommendations(
+        self,
+        results,
+        filters,
+    ):
+        """Use an optional preference callback without changing query safety."""
+
+        ranker = self.preference_ranker
+
+        if not callable(ranker):
+            return results
+
+        if filters.get("category") or filters.get("keyword"):
+            return results
+
+        try:
+            ranked = list(
+                ranker(
+                    results,
+                    filters=filters,
+                )
+            )
+
+            original_ids = [
+                item.get("session_id")
+                for item in results
+            ]
+            ranked_ids = [
+                item.get("session_id")
+                for item in ranked
+            ]
+
+            if (
+                len(ranked) == len(results)
+                and sorted(ranked_ids) == sorted(original_ids)
+            ):
+                return ranked
+
+            print("历史活动偏好返回异常，保留原推荐顺序", flush=True)
+
+        except Exception as exc:
+            print(
+                f"历史活动偏好不可用，保留原推荐顺序：{exc!r}",
+                flush=True,
+            )
+
+        return results
+
+
     def query(
         self,
         text,
@@ -366,6 +422,11 @@ class ActivityController:
                     item
                 )
             ]
+
+            results = self._rank_generic_recommendations(
+                results,
+                filters,
+            )
 
 
         self.last_filters = (
@@ -1045,6 +1106,14 @@ class ActivityController:
                 "decline",
             ]:
                 return self.confirm_no()
+
+            # 还在确认上一项活动时，不能让新的查询或选择替换
+            # self.selected。否则“对”会登记新活动，而共享需求仍指向
+            # 旧活动，造成跨场景记录和业务登记不一致。
+            return self._result(
+                "awaiting_join_confirmation",
+                "请先回答是否登记当前活动；如果不想登记，可以说算了。",
+            )
 
 
         if action == "query":

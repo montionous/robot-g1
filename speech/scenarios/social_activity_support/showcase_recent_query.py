@@ -63,6 +63,71 @@ class RecentActivityQueryResolver:
         )
 
 
+    @staticmethod
+    def build_generic_list_reply(
+        sessions,
+    ):
+        """Build the spoken list from the exact sessions shown to the elder."""
+
+        # 按日期组织播报。同一天只说一次“今天 / 明天”，并且必须使用
+        # 控制器最终保留的顺序，保证“第一个、第二个”与随后选择一致。
+        grouped = []
+
+        for item in sessions:
+
+            current_date = item[
+                "activity_date"
+            ]
+
+            if (
+                not grouped
+                or grouped[-1][0]
+                != current_date
+            ):
+                grouped.append(
+                    (
+                        current_date,
+                        [],
+                    )
+                )
+
+            grouped[-1][1].append(
+                item
+            )
+
+        date_parts = []
+
+        for activity_date, items in grouped:
+
+            item_parts = []
+
+            for item in items:
+
+                item_parts.append(
+                    (
+                        f"{time_label(item['start_time'])}"
+                        f"有{item['name']}"
+                    )
+                )
+
+            date_parts.append(
+                (
+                    f"{date_label(activity_date)}"
+                    + "、".join(
+                        item_parts
+                    )
+                )
+            )
+
+        return (
+            "最近的活动有："
+            + "；".join(
+                date_parts
+            )
+            + "。您对哪个比较感兴趣？"
+        )
+
+
     def resolve(
         self,
         text,
@@ -315,71 +380,8 @@ class RecentActivityQueryResolver:
             ):
                 break
 
-
-        # 按日期组织播报。
-        #
-        # 例如：
-        # 今天下午3点有下午茶话会、
-        # 下午3点半有集体唱歌、
-        # 晚上7点有集体观影。
-        #
-        # 同一天只说一次“今天”。
-        grouped = []
-
-        for item in selected:
-
-            current_date = item[
-                "activity_date"
-            ]
-
-            if (
-                not grouped
-                or grouped[-1][0]
-                != current_date
-            ):
-                grouped.append(
-                    (
-                        current_date,
-                        [],
-                    )
-                )
-
-            grouped[-1][1].append(
-                item
-            )
-
-
-        date_parts = []
-
-        for activity_date, items in grouped:
-
-            item_parts = []
-
-            for item in items:
-
-                item_parts.append(
-                    (
-                        f"{time_label(item['start_time'])}"
-                        f"有{item['name']}"
-                    )
-                )
-
-            date_parts.append(
-                (
-                    f"{date_label(activity_date)}"
-                    + "、".join(
-                        item_parts
-                    )
-                )
-            )
-
-
-        reply = (
-            "最近的活动有："
-            + "；".join(
-                date_parts
-            )
-            + "。您对哪个比较感兴趣？"
+        reply = self.build_generic_list_reply(
+            selected
         )
 
         return {
