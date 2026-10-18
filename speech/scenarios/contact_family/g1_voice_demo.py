@@ -39,6 +39,16 @@ from companion_recording import (
     validate_elderly_id,
 )
 
+from robot_leds import (
+    RobotLedClient,
+    add_robot_led_arguments,
+    validate_robot_led_arguments,
+)
+
+from robot_actions import (
+    RobotActionClient,
+)
+
 from call_service import (
     MockCallService,
 )
@@ -125,6 +135,25 @@ def stage(
         print(
             f"{title}"
         )
+
+
+def trigger_robot_action(
+    actions,
+    action_name,
+    *,
+    source,
+):
+    """Keep optional gestures out of the contact and dialing safety logic."""
+
+    try:
+        return actions.play(
+            action_name,
+            source=source,
+            blocking=False,
+        )
+    except Exception as exc:
+        stage("", "机器人动作异常", repr(exc))
+        return None
 
 
 # =========================================================
@@ -1095,12 +1124,37 @@ def run_scene(
     elder_turn_seconds,
     family_turn_timeout,
     record_elder_needs=True,
+    robot_actions="off",
+    confirm_g1_actions=False,
+    robot_leds="off",
+    confirm_g1_led_demo=False,
 ):
     banner(
         "CONTACT_FAMILY · G1 全语音演示"
     )
 
     speech = SpeechClient()
+    leds = RobotLedClient(
+        mode=robot_leds,
+        confirm_writes=confirm_g1_led_demo,
+    )
+
+    stage(
+        "",
+        "机器人灯光",
+        robot_leds,
+    )
+
+    actions = RobotActionClient(
+        mode=robot_actions,
+        confirm_writes=confirm_g1_actions,
+    )
+
+    stage(
+        "",
+        "机器人动作",
+        robot_actions,
+    )
 
     # -----------------------------------------------------
     # 服务健康检查
@@ -1164,6 +1218,10 @@ def run_scene(
         "“我想和女儿说说话”"
     )
 
+    leds.show(
+        "listening",
+        source="contact_family:request_listen",
+    )
     request_text = listen(
         speech,
         seconds=request_seconds,
@@ -1171,10 +1229,18 @@ def run_scene(
     )
 
     if not request_text:
+        leds.show(
+            "retry",
+            source="contact_family:request_not_heard",
+        )
         say(
             speech,
             "抱歉，我没有听清，请稍后再试。",
             dialect=dialect,
+        )
+        leds.show(
+            "farewell",
+            source="contact_family:request_not_heard_end",
         )
         return
 
@@ -1182,6 +1248,10 @@ def run_scene(
         elderly_id
     )
 
+    leds.show(
+        "processing",
+        source="contact_family:request_parse",
+    )
     result = session.handle_request(
         request_text
     )
@@ -1206,12 +1276,27 @@ def run_scene(
             dialect=dialect,
         )
 
+        leds.show(
+            "retry",
+            source="contact_family:not_contact_family",
+        )
+        leds.show(
+            "farewell",
+            source="contact_family:not_contact_family_end",
+        )
+
         return
 
     stage(
         "✅",
         "场景识别",
         "CONTACT_FAMILY",
+    )
+
+    trigger_robot_action(
+        actions,
+        "acknowledge",
+        source="contact_family:recognized_request",
     )
 
     announce_decision(
@@ -1248,6 +1333,10 @@ def run_scene(
             dialect=dialect,
         )
 
+        leds.show(
+            "listening",
+            source="contact_family:target_listen",
+        )
         target_text = listen(
             speech,
             seconds=target_seconds,
@@ -1262,6 +1351,10 @@ def run_scene(
             + target_text
         )
 
+        leds.show(
+            "processing",
+            source="contact_family:target_parse",
+        )
         result = session.handle_request(
             combined_text
         )
@@ -1317,6 +1410,21 @@ def run_scene(
             confirmed=False,
             call_status=
                 "contact_not_found",
+        )
+
+        leds.show(
+            "retry",
+            source="contact_family:contact_not_found",
+        )
+        leds.show(
+            "farewell",
+            source="contact_family:contact_not_found_end",
+        )
+
+        trigger_robot_action(
+            actions,
+            "goodbye",
+            source="contact_family:contact_not_found_end",
         )
 
         return
@@ -1380,6 +1488,11 @@ def run_scene(
         dialect=dialect,
     )
 
+    leds.show(
+        "confirmation",
+        source="contact_family:contact_confirmation_prompt",
+    )
+
     confirmation = None
     confirmation_text = ""
 
@@ -1388,6 +1501,10 @@ def run_scene(
         1,
         3,
     ):
+        leds.show(
+            "confirmation",
+            source="contact_family:contact_confirmation_listen",
+        )
         confirmation_text = listen(
             speech,
             seconds=confirm_seconds,
@@ -1469,6 +1586,17 @@ def run_scene(
             "场景结束 · 未拨号"
         )
 
+        leds.show(
+            "farewell",
+            source="contact_family:contact_confirmation_cancelled",
+        )
+
+        trigger_robot_action(
+            actions,
+            "goodbye",
+            source="contact_family:contact_confirmation_cancelled",
+        )
+
         return
 
     # -----------------------------------------------------
@@ -1476,6 +1604,11 @@ def run_scene(
     # -----------------------------------------------------
 
     if confirmation is not True:
+
+        leds.show(
+            "retry",
+            source="contact_family:contact_confirmation_unclear",
+        )
 
         needs.finish(
             status="failed",
@@ -1526,6 +1659,17 @@ def run_scene(
             "场景结束 · 安全终止"
         )
 
+        leds.show(
+            "farewell",
+            source="contact_family:contact_confirmation_unclear_end",
+        )
+
+        trigger_robot_action(
+            actions,
+            "goodbye",
+            source="contact_family:contact_confirmation_unclear_end",
+        )
+
         return
 
     # -----------------------------------------------------
@@ -1536,6 +1680,11 @@ def run_scene(
         "",
         "联系人确认",
         "已确认目标联系人",
+    )
+
+    leds.show(
+        "acknowledged",
+        source="contact_family:contact_confirmed",
     )
 
     announce_decision(
@@ -1612,8 +1761,27 @@ def run_scene(
                     "real_phone_binding_blocked",
             )
 
+            leds.show(
+                "retry",
+                source="contact_family:real_binding_blocked",
+            )
+            leds.show(
+                "farewell",
+                source="contact_family:real_binding_blocked_end",
+            )
+
+            trigger_robot_action(
+                actions,
+                "goodbye",
+                source="contact_family:real_binding_blocked_end",
+            )
+
             return
 
+    leds.show(
+        "processing",
+        source="contact_family:phone_prepare",
+    )
     phone_prepare = (
         backend.prepare()
     )
@@ -1637,6 +1805,11 @@ def run_scene(
     )
 
     if not phone_prepare["ready"]:
+
+        leds.show(
+            "retry",
+            source="contact_family:phone_prepare_failed",
+        )
 
         needs.finish(
             status="failed",
@@ -1677,6 +1850,17 @@ def run_scene(
                 "phone_prepare_failed",
         )
 
+        leds.show(
+            "farewell",
+            source="contact_family:phone_prepare_failed_end",
+        )
+
+        trigger_robot_action(
+            actions,
+            "goodbye",
+            source="contact_family:phone_prepare_failed_end",
+        )
+
         return
 
     announce_decision(
@@ -1715,6 +1899,11 @@ def run_scene(
         dialect=dialect,
     )
 
+    leds.show(
+        "confirmation",
+        source="contact_family:dial_authorization_prompt",
+    )
+
     dial_authorized = None
     dial_auth = None
 
@@ -1724,6 +1913,10 @@ def run_scene(
         3,
     ):
 
+        leds.show(
+            "confirmation",
+            source="contact_family:dial_authorization_listen",
+        )
         dial_text = listen(
             speech,
             seconds=confirm_seconds,
@@ -1806,6 +1999,17 @@ def run_scene(
             "场景结束 · 未拨号"
         )
 
+        leds.show(
+            "farewell",
+            source="contact_family:dial_authorization_cancelled",
+        )
+
+        trigger_robot_action(
+            actions,
+            "goodbye",
+            source="contact_family:dial_authorization_cancelled",
+        )
+
         return
 
     # -----------------------------------------------------
@@ -1813,6 +2017,11 @@ def run_scene(
     # -----------------------------------------------------
 
     if dial_authorized is not True:
+
+        leds.show(
+            "retry",
+            source="contact_family:dial_authorization_unclear",
+        )
 
         needs.finish(
             status="failed",
@@ -1863,6 +2072,17 @@ def run_scene(
             "场景结束 · 安全终止"
         )
 
+        leds.show(
+            "farewell",
+            source="contact_family:dial_authorization_unclear_end",
+        )
+
+        trigger_robot_action(
+            actions,
+            "goodbye",
+            source="contact_family:dial_authorization_unclear_end",
+        )
+
         return
 
     # -----------------------------------------------------
@@ -1902,6 +2122,10 @@ def run_scene(
             dialect=dialect,
         )
 
+    leds.show(
+        "processing",
+        source="contact_family:dial_request",
+    )
     call_result_data = (
         backend.dial()
     )
@@ -1955,6 +2179,11 @@ def run_scene(
             "dial_authorized_safe_stub"
         )
 
+        leds.show(
+            "acknowledged",
+            source="contact_family:safe_stub_authorized",
+        )
+
     else:
 
         operation_state = (
@@ -1979,6 +2208,11 @@ def run_scene(
 
             call_status = "accepted"
 
+            leds.show(
+                "acknowledged",
+                source="contact_family:dial_accepted",
+            )
+
         else:
             say(
                 speech,
@@ -1992,6 +2226,11 @@ def run_scene(
             # operation_state 来自外部调用结果，不能把其原文（可能
             # 包含后端诊断或敏感字段）写进场景/共享记录。
             call_status = "dial_failed"
+
+            leds.show(
+                "retry",
+                source="contact_family:dial_failed",
+            )
 
     # 不把最终授权语句写进日志。
     log_text = request_text
@@ -2048,6 +2287,18 @@ def run_scene(
         " → 呼叫"
         " → 数据库记录"
     )
+
+    leds.show(
+        "farewell",
+        source="contact_family:scene_end",
+    )
+
+    if call_status != "accepted":
+        trigger_robot_action(
+            actions,
+            "goodbye",
+            source="contact_family:scene_end",
+        )
 
 
 # =========================================================
@@ -2164,6 +2415,21 @@ def main():
     )
 
     parser.add_argument(
+        "--robot-actions",
+        choices=("off", "dry-run", "execute"),
+        default="dry-run",
+        help="机器人手臂动作模式；默认 dry-run，不向 G1 写入",
+    )
+
+    parser.add_argument(
+        "--confirm-g1-actions",
+        action="store_true",
+        help="仅与 --robot-actions execute 一起使用",
+    )
+
+    add_robot_led_arguments(parser)
+
+    parser.add_argument(
         "--call-backend",
         choices=[
             "safe_stub",
@@ -2191,6 +2457,17 @@ def main():
 
     args = parser.parse_args()
 
+    if args.robot_actions == "execute" and not args.confirm_g1_actions:
+        parser.error(
+            "--robot-actions execute requires --confirm-g1-actions"
+        )
+    if args.confirm_g1_actions and args.robot_actions != "execute":
+        parser.error(
+            "--confirm-g1-actions requires --robot-actions execute"
+        )
+
+    validate_robot_led_arguments(parser, args)
+
     if args.record_log is not None and args.elderly_id is None:
         parser.error("--record-log requires explicit --elderly-id")
     elderly_id = args.elderly_id if args.elderly_id is not None else 1
@@ -2214,6 +2491,10 @@ def main():
             announce_decisions=args.announce_decisions,
             call_backend=args.call_backend,
             record_elder_needs=not args.no_need_write,
+            robot_actions=args.robot_actions,
+            confirm_g1_actions=args.confirm_g1_actions,
+            robot_leds=args.robot_leds,
+            confirm_g1_led_demo=args.confirm_g1_led_demo,
         )
 
     run_recorded_scene(

@@ -43,6 +43,12 @@ from robot_actions import (
     RobotActionClient,
 )
 
+from robot_leds import (
+    RobotLedClient,
+    add_robot_led_arguments,
+    validate_robot_led_arguments,
+)
+
 from entertainment_controller import (
     EntertainmentController,
 )
@@ -558,6 +564,8 @@ def run_scene(
     confirm_g1_actions,
     elderly_id=None,
     record_elder_needs=True,
+    robot_leds="off",
+    confirm_g1_led_demo=False,
 ):
     # request_seconds / control_seconds
     # 暂时保留CLI兼容性。
@@ -602,6 +610,16 @@ def run_scene(
     log(
         "机器人动作",
         robot_actions,
+    )
+
+    leds = RobotLedClient(
+        mode=robot_leds,
+        confirm_writes=confirm_g1_led_demo,
+    )
+
+    log(
+        "机器人灯光",
+        robot_leds,
     )
 
     try:
@@ -664,6 +682,11 @@ def run_scene(
         live = create_live_asr()
 
         live.start()
+
+        leds.show(
+            "listening",
+            source="companion_entertainment:live_listen",
+        )
 
         log(
             "持续监听",
@@ -997,6 +1020,11 @@ def run_scene(
             # 扬声器声 / 机械声重新进入识别链路。
             stop_live()
 
+            leds.show(
+                "processing",
+                source="companion_entertainment:accepted_command",
+            )
+
             # 有效需求已经通过业务检查，先写共享库，再播报。
             need_id = needs.begin(
                 raw_text=text,
@@ -1072,6 +1100,17 @@ def run_scene(
                     )
                 )
 
+                if result.get("action") == "stop":
+                    leds.show(
+                        "farewell",
+                        source="companion_entertainment:stop",
+                    )
+                else:
+                    leds.show(
+                        "acknowledged",
+                        source="companion_entertainment:response",
+                    )
+
             finally:
                 # 播放、TTS 或动作发生异常时，不能把需求一直留在
                 # in_progress；finish 本身是非阻塞的。
@@ -1099,6 +1138,11 @@ def run_scene(
         stop_live()
 
         player.stop()
+
+        leds.show(
+            "farewell",
+            source="companion_entertainment:scene_end",
+        )
 
     print()
 
@@ -1163,6 +1207,8 @@ def main():
         ),
     )
 
+    add_robot_led_arguments(parser)
+
     parser.add_argument(
         "--elder-id",
         "--elderly-id",
@@ -1210,6 +1256,8 @@ def main():
             "--robot-actions execute"
         )
 
+    validate_robot_led_arguments(parser, args)
+
 
     if args.record_log is not None and args.elder_id is None:
         parser.error("--record-log requires explicit --elderly-id")
@@ -1229,6 +1277,8 @@ def main():
             announce_decisions=args.announce_decisions,
             robot_actions=args.robot_actions,
             confirm_g1_actions=args.confirm_g1_actions,
+            robot_leds=args.robot_leds,
+            confirm_g1_led_demo=args.confirm_g1_led_demo,
         )
 
     run_recorded_scene(

@@ -40,6 +40,16 @@ from companion_recording import (
     validate_elderly_id,
 )
 
+from robot_leds import (
+    RobotLedClient,
+    add_robot_led_arguments,
+    validate_robot_led_arguments,
+)
+
+from robot_actions import (
+    RobotActionClient,
+)
+
 from care_controller import (
     CareConsultation,
 )
@@ -112,6 +122,25 @@ def log(
         )
     else:
         print(name)
+
+
+def trigger_robot_action(
+    actions,
+    action_name,
+    *,
+    source,
+):
+    """Keep optional G1 gestures separate from the care decision flow."""
+
+    try:
+        return actions.play(
+            action_name,
+            source=source,
+            blocking=False,
+        )
+    except Exception as exc:
+        log("机器人动作异常", repr(exc))
+        return None
 
 
 def log_memory_persistence(
@@ -543,6 +572,10 @@ def run_scene(
     listen_seconds,
     announce_decisions,
     showcase,
+    robot_actions="off",
+    confirm_g1_actions=False,
+    robot_leds="off",
+    confirm_g1_led_demo=False,
 ):
 
     print()
@@ -599,11 +632,35 @@ def run_scene(
 
 
     speech = SpeechClient()
+    leds = RobotLedClient(
+        mode=robot_leds,
+        confirm_writes=confirm_g1_led_demo,
+    )
+
+    log(
+        "机器人灯光",
+        robot_leds,
+    )
+
+    actions = RobotActionClient(
+        mode=robot_actions,
+        confirm_writes=confirm_g1_actions,
+    )
+
+    log(
+        "机器人动作",
+        robot_actions,
+    )
 
 
     first_text = ""
 
     for _ in range(2):
+
+        leds.show(
+            "listening",
+            source="care_consultation_support:initial_listen",
+        )
 
         first_text = listen(
             speech,
@@ -625,6 +682,11 @@ def run_scene(
 
     if not first_text:
 
+        leds.show(
+            "retry",
+            source="care_consultation_support:initial_not_heard",
+        )
+
         speak(
             speech,
             (
@@ -633,6 +695,11 @@ def run_scene(
                 "可以再告诉我。"
             ),
             dialect=dialect,
+        )
+
+        leds.show(
+            "farewell",
+            source="care_consultation_support:initial_timeout",
         )
 
         return
@@ -645,6 +712,11 @@ def run_scene(
     # 规则没有命中时，再让大模型做语义兜底。
     # 这样可以容忍“酸 -> 伤”一类 ASR 误识别。
     # =====================================================
+
+    leds.show(
+        "processing",
+        source="care_consultation_support:initial_classification",
+    )
 
     care_detected = (
         is_care_trigger(
@@ -662,6 +734,11 @@ def run_scene(
 
 
     if not care_detected:
+
+        leds.show(
+            "retry",
+            source="care_consultation_support:not_care",
+        )
 
         try:
 
@@ -722,6 +799,11 @@ def run_scene(
             dialect=dialect,
         )
 
+        leds.show(
+            "farewell",
+            source="care_consultation_support:not_care_end",
+        )
+
         return
 
 
@@ -777,6 +859,7 @@ def run_scene(
     current_text = first_text
     first_turn = True
     empty_count = 0
+    acknowledged_once = False
 
     # 演示模式中记录已经播报过的个人档案，
     # 避免每轮机械重复相同病史或历史咨询。
@@ -788,6 +871,11 @@ def run_scene(
         while True:
 
             try:
+
+                leds.show(
+                    "processing",
+                    source="care_consultation_support:consultation",
+                )
 
                 if first_turn:
 
@@ -810,6 +898,11 @@ def run_scene(
                     )
 
             except Exception as exc:
+
+                leds.show(
+                    "retry",
+                    source="care_consultation_support:processing_error",
+                )
 
                 log(
                     "护理处理失败",
@@ -836,6 +929,11 @@ def run_scene(
 
                     end_reason=
                         "processing_error",
+                )
+
+                leds.show(
+                    "farewell",
+                    source="care_consultation_support:processing_error_end",
                 )
 
                 return
@@ -1059,6 +1157,17 @@ def run_scene(
 
             if reply:
 
+                if (
+                    not acknowledged_once
+                    and not result.get("transfer_to")
+                ):
+                    trigger_robot_action(
+                        actions,
+                        "acknowledge",
+                        source="care_consultation_support:first_reply",
+                    )
+                    acknowledged_once = True
+
                 speak(
                     speech,
                     reply,
@@ -1077,6 +1186,11 @@ def run_scene(
 
                     tags=
                         tags,
+                )
+
+                leds.show(
+                    "acknowledged",
+                    source="care_consultation_support:reply",
                 )
 
 
@@ -1129,6 +1243,11 @@ def run_scene(
                             "end_reason",
                             "transfer",
                         ),
+                )
+
+                leds.show(
+                    "farewell",
+                    source="care_consultation_support:transfer",
                 )
 
                 return
@@ -1252,9 +1371,25 @@ def run_scene(
                     "结束",
                 )
 
+                if end_reason == "user_requested":
+                    trigger_robot_action(
+                        actions,
+                        "goodbye",
+                        source="care_consultation_support:user_requested_end",
+                    )
+
+                leds.show(
+                    "farewell",
+                    source="care_consultation_support:completed",
+                )
+
                 return
 
 
+            leds.show(
+                "listening",
+                source="care_consultation_support:followup_listen",
+            )
             current_text = listen(
                 speech,
                 seconds=listen_seconds,
@@ -1268,6 +1403,11 @@ def run_scene(
                 # 第一次连续没听到时先等待，
                 # 第二次再进行一次自然提醒。
                 if empty_count == 2:
+
+                    leds.show(
+                        "retry",
+                        source="care_consultation_support:followup_not_heard",
+                    )
 
                     speak(
                         speech,
@@ -1315,6 +1455,17 @@ def run_scene(
                         finalize_result
                     )
 
+                    trigger_robot_action(
+                        actions,
+                        "goodbye",
+                        source="care_consultation_support:no_response_end",
+                    )
+
+                    leds.show(
+                        "farewell",
+                        source="care_consultation_support:no_response",
+                    )
+
                     return
 
 
@@ -1347,6 +1498,11 @@ def run_scene(
 
             end_reason=
                 "manual_interrupt",
+        )
+
+        leds.show(
+            "farewell",
+            source="care_consultation_support:manual_interrupt",
         )
 
 
@@ -1402,6 +1558,21 @@ def main():
     )
 
     parser.add_argument(
+        "--robot-actions",
+        choices=("off", "dry-run", "execute"),
+        default="dry-run",
+        help="机器人手臂动作模式；默认 dry-run，不向 G1 写入",
+    )
+
+    parser.add_argument(
+        "--confirm-g1-actions",
+        action="store_true",
+        help="仅与 --robot-actions execute 一起使用",
+    )
+
+    add_robot_led_arguments(parser)
+
+    parser.add_argument(
         "--elder-id",
         dest="elderly_id",
         type=int,
@@ -1422,6 +1593,17 @@ def main():
 
     args = parser.parse_args()
 
+    if args.robot_actions == "execute" and not args.confirm_g1_actions:
+        parser.error(
+            "--robot-actions execute requires --confirm-g1-actions"
+        )
+    if args.confirm_g1_actions and args.robot_actions != "execute":
+        parser.error(
+            "--confirm-g1-actions requires --robot-actions execute"
+        )
+
+    validate_robot_led_arguments(parser, args)
+
 
     if args.record_log is not None and args.elderly_id is None:
         parser.error("--record-log requires explicit --elderly-id")
@@ -1439,6 +1621,10 @@ def main():
             listen_seconds=args.listen_seconds,
             announce_decisions=args.announce_decisions,
             showcase=args.showcase,
+            robot_actions=args.robot_actions,
+            confirm_g1_actions=args.confirm_g1_actions,
+            robot_leds=args.robot_leds,
+            confirm_g1_led_demo=args.confirm_g1_led_demo,
         )
 
     run_recorded_scene(

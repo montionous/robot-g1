@@ -5,6 +5,9 @@
 四个现用场景的共享需求记录、活动偏好使用方式和隐私边界见
 [ELDER_NEED_INTEGRATION.md](ELDER_NEED_INTEGRATION.md)。
 
+四个场景的逐轮测试语句、头灯语义和安全启用方式见
+[SCENE_TEST_UTTERANCES.md](SCENE_TEST_UTTERANCES.md)。
+
 第一阶段先在 Windows 验证 Qwen-Audio-3.0-TTS-Flash。
 
 ## 1. 环境

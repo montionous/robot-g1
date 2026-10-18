@@ -43,6 +43,12 @@ from robot_actions import (
     RobotActionClient,
 )
 
+from robot_leds import (
+    RobotLedClient,
+    add_robot_led_arguments,
+    validate_robot_led_arguments,
+)
+
 from showcase_controller import (
     ShowcaseController,
 )
@@ -74,6 +80,7 @@ from showcase_protocol import (
     QUERY,
     REPEAT_DETAILS,
     SELECT,
+    WAIT_CONFIRM,
 )
 
 from activity_need_integration import (
@@ -360,6 +367,8 @@ def run_scene(
     robot_actions,
     confirm_g1_actions,
     record_elder_needs=False,
+    robot_leds="off",
+    confirm_g1_led_demo=False,
 ):
     print()
     print(
@@ -415,6 +424,16 @@ def run_scene(
     log(
         "机器人动作",
         robot_actions,
+    )
+
+    leds = RobotLedClient(
+        mode=robot_leds,
+        confirm_writes=confirm_g1_led_demo,
+    )
+
+    log(
+        "机器人灯光",
+        robot_leds,
     )
 
     intent_llm = None
@@ -519,6 +538,11 @@ def run_scene(
         dialect=dialect,
     )
 
+    leds.show(
+        "listening",
+        source="social_activity_support_showcase:opening_listen",
+    )
+
     state_started = (
         time.monotonic()
     )
@@ -552,8 +576,17 @@ def run_scene(
                     dialect=dialect,
                 )
 
+                leds.show(
+                    "farewell",
+                    source="social_activity_support_showcase:timeout",
+                )
+
                 break
 
+            leds.show(
+                "listening",
+                source="social_activity_support_showcase:listen",
+            )
             text = (
                 listen_once(
                     speech,
@@ -691,6 +724,11 @@ def run_scene(
             }:
                 continue
 
+            leds.show(
+                "processing",
+                source="social_activity_support_showcase:accepted_request",
+            )
+
             needs.record_result(
                 raw_text=text,
                 result=result,
@@ -748,6 +786,21 @@ def run_scene(
                     dialect=dialect,
                 )
 
+                leds.show(
+                    (
+                        "confirmation"
+                        if controller.state == WAIT_CONFIRM
+                        else "acknowledged"
+                    ),
+                    source="social_activity_support_showcase:reply",
+                )
+
+            if action == "end":
+                leds.show(
+                    "farewell",
+                    source="social_activity_support_showcase:end",
+                )
+
             if (
                 controller.state
                 != previous_state
@@ -766,6 +819,11 @@ def run_scene(
         # 语音、动作或数据库读取异常时，也要撤销尚未得到确认的
         # 报名意愿，避免控制台留下永久 in_progress 记录。
         needs.close(outcome="scene_interrupted")
+
+        leds.show(
+            "farewell",
+            source="social_activity_support_showcase:scene_end",
+        )
 
     print()
     log(
@@ -860,6 +918,8 @@ def main():
         ),
     )
 
+    add_robot_led_arguments(parser)
+
     args = (
         parser.parse_args()
     )
@@ -883,6 +943,8 @@ def main():
             "--confirm-g1-actions requires "
             "--robot-actions execute"
         )
+
+    validate_robot_led_arguments(parser, args)
 
     run_scene(
         elder_id=
@@ -914,6 +976,9 @@ def main():
 
         confirm_g1_actions=
             args.confirm_g1_actions,
+
+        robot_leds=args.robot_leds,
+        confirm_g1_led_demo=args.confirm_g1_led_demo,
 
         record_elder_needs=
             args.record_elder_needs,

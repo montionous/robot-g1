@@ -49,6 +49,12 @@ from robot_actions import (
     RobotActionClient,
 )
 
+from robot_leds import (
+    RobotLedClient,
+    add_robot_led_arguments,
+    validate_robot_led_arguments,
+)
+
 from demo_controller import (
     ShowcaseController,
 )
@@ -716,6 +722,8 @@ def run_scene(
     confirm_g1_actions,
     elderly_id=None,
     record_elder_needs=False,
+    robot_leds="off",
+    confirm_g1_led_demo=False,
 ):
     speech = SpeechClient()
 
@@ -742,6 +750,16 @@ def run_scene(
     log(
         "机器人动作",
         robot_actions,
+    )
+
+    leds = RobotLedClient(
+        mode=robot_leds,
+        confirm_writes=confirm_g1_led_demo,
+    )
+
+    log(
+        "机器人灯光",
+        robot_leds,
     )
 
     showcase = (
@@ -827,6 +845,11 @@ def run_scene(
             listen_seconds,
     )
 
+    leds.show(
+        "listening",
+        source="companion_entertainment_showcase:live_listen",
+    )
+
     try:
 
 
@@ -853,6 +876,11 @@ def run_scene(
                 speak_interaction(
                     speech,
                     TIMEOUT_REPLY,
+                )
+
+                leds.show(
+                    "farewell",
+                    source="companion_entertainment_showcase:timeout",
                 )
 
                 break
@@ -1095,6 +1123,11 @@ def run_scene(
             # 判断播报和机器人回复。
             live.stop()
 
+            leds.show(
+                "processing",
+                source="companion_entertainment_showcase:accepted_command",
+            )
+
             # 只发布固定状态机已经接受的有效老人需求。
             # 展示版默认只读，不写正式需求历史。
             need_command = {
@@ -1199,6 +1232,17 @@ def run_scene(
 
                 execution_succeeded = True
 
+                if action == END:
+                    leds.show(
+                        "farewell",
+                        source="companion_entertainment_showcase:end",
+                    )
+                else:
+                    leds.show(
+                        "acknowledged",
+                        source="companion_entertainment_showcase:response",
+                    )
+
             finally:
                 needs.finish(
                     need_id,
@@ -1216,6 +1260,11 @@ def run_scene(
                     speech,
                     window_seconds=
                         listen_seconds,
+                )
+
+                leds.show(
+                    "listening",
+                    source="companion_entertainment_showcase:resume_listen",
                 )
 
             # 只有合法控制真正执行后，
@@ -1240,6 +1289,11 @@ def run_scene(
 
         player.stop(
             quiet=True
+        )
+
+        leds.show(
+            "farewell",
+            source="companion_entertainment_showcase:scene_end",
         )
 
     log(
@@ -1310,6 +1364,8 @@ def main():
         ),
     )
 
+    add_robot_led_arguments(parser)
+
     parser.add_argument(
         "--elder-id",
         type=int,
@@ -1343,6 +1399,8 @@ def main():
             "--robot-actions execute"
         )
 
+    validate_robot_led_arguments(parser, args)
+
     run_scene(
         elderly_id=args.elder_id,
         record_elder_needs=args.record_elder_needs,
@@ -1369,6 +1427,8 @@ def main():
 
         confirm_g1_actions=
             args.confirm_g1_actions,
+        robot_leds=args.robot_leds,
+        confirm_g1_led_demo=args.confirm_g1_led_demo,
     )
 
 

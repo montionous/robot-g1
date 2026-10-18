@@ -44,6 +44,16 @@ from companion_recording import (
     validate_elderly_id,
 )
 
+from robot_leds import (
+    RobotLedClient,
+    add_robot_led_arguments,
+    validate_robot_led_arguments,
+)
+
+from robot_actions import (
+    RobotActionClient,
+)
+
 from activity_controller import (
     ActivityController,
 )
@@ -72,6 +82,25 @@ def log(
         )
     else:
         print(name)
+
+
+def trigger_robot_action(
+    actions,
+    action_name,
+    *,
+    source,
+):
+    """Optional gestures must not alter activity selection or registration."""
+
+    try:
+        return actions.play(
+            action_name,
+            source=source,
+            blocking=False,
+        )
+    except Exception as exc:
+        log("机器人动作异常", repr(exc))
+        return None
 
 
 def speak(
@@ -528,6 +557,10 @@ def run_scene(
     listen_seconds,
     announce_decisions,
     record_elder_needs=True,
+    robot_actions="off",
+    confirm_g1_actions=False,
+    robot_leds="off",
+    confirm_g1_led_demo=False,
 ):
 
     print()
@@ -549,6 +582,25 @@ def run_scene(
     )
 
     speech = SpeechClient()
+    leds = RobotLedClient(
+        mode=robot_leds,
+        confirm_writes=confirm_g1_led_demo,
+    )
+
+    log(
+        "机器人灯光",
+        robot_leds,
+    )
+
+    actions = RobotActionClient(
+        mode=robot_actions,
+        confirm_writes=confirm_g1_actions,
+    )
+
+    log(
+        "机器人动作",
+        robot_actions,
+    )
 
     controller = (
         ActivityController(
@@ -595,6 +647,11 @@ def run_scene(
 
         try:
 
+            leds.show(
+                "listening",
+                source="social_activity_support:listen",
+            )
+
             text = listen(
                 speech,
                 seconds=listen_seconds,
@@ -611,6 +668,11 @@ def run_scene(
 
         except Exception as exc:
 
+            leds.show(
+                "retry",
+                source="social_activity_support:asr_error",
+            )
+
             print(
                 "语音识别失败:",
                 repr(exc),
@@ -623,6 +685,11 @@ def run_scene(
                 dialect=dialect,
             )
 
+            leds.show(
+                "farewell",
+                source="social_activity_support:asr_error_end",
+            )
+
             break
 
 
@@ -631,6 +698,11 @@ def run_scene(
             empty_count += 1
 
             if empty_count == 2:
+
+                leds.show(
+                    "retry",
+                    source="social_activity_support:not_heard",
+                )
 
                 speak(
                     speech,
@@ -644,6 +716,11 @@ def run_scene(
                 )
 
             elif empty_count >= 4:
+
+                leds.show(
+                    "farewell",
+                    source="social_activity_support:no_response",
+                )
 
                 speak(
                     speech,
@@ -839,6 +916,43 @@ def run_scene(
             ],
         )
 
+        if result.get("action") not in {"unknown", "ignore"}:
+            leds.show(
+                "processing",
+                source="social_activity_support:accepted_request",
+            )
+
+        action_name = result.get("action")
+        if action_name == "recommend":
+            trigger_robot_action(
+                actions,
+                "present",
+                source="social_activity_support:recommend",
+            )
+        elif action_name in {
+            "selected",
+            "confirm_join",
+            "confirm_waitlist",
+            "confirm_late_inquiry",
+        }:
+            trigger_robot_action(
+                actions,
+                "acknowledge",
+                source="social_activity_support:confirmation_or_selection",
+            )
+        elif action_name == "interest_recorded":
+            trigger_robot_action(
+                actions,
+                "celebrate",
+                source="social_activity_support:interest_recorded",
+            )
+        elif action_name == "end":
+            trigger_robot_action(
+                actions,
+                "goodbye",
+                source="social_activity_support:end",
+            )
+
         # 只记录控制器已经接受的业务动作；ASR 噪声、低置信度
         # 以及无关输入不会进入跨场景需求库。
         needs.record_result(
@@ -894,13 +1008,31 @@ def run_scene(
                 dialect=dialect,
             )
 
+            leds.show(
+                (
+                    "confirmation"
+                    if controller.awaiting_join_confirmation
+                    else "acknowledged"
+                ),
+                source="social_activity_support:reply",
+            )
+
 
         if not result.get(
             "active",
             True,
         ):
+            leds.show(
+                "farewell",
+                source="social_activity_support:completed",
+            )
             break
 
+
+    leds.show(
+        "farewell",
+        source="social_activity_support:scene_end",
+    )
 
     print()
     print(
@@ -956,6 +1088,21 @@ def main():
     )
 
     parser.add_argument(
+        "--robot-actions",
+        choices=("off", "dry-run", "execute"),
+        default="dry-run",
+        help="机器人手臂动作模式；默认 dry-run，不向 G1 写入",
+    )
+
+    parser.add_argument(
+        "--confirm-g1-actions",
+        action="store_true",
+        help="仅与 --robot-actions execute 一起使用",
+    )
+
+    add_robot_led_arguments(parser)
+
+    parser.add_argument(
         "--record-log",
         type=Path,
         help="care_session_record_v1 journal path",
@@ -968,6 +1115,17 @@ def main():
     )
 
     args = parser.parse_args()
+
+    if args.robot_actions == "execute" and not args.confirm_g1_actions:
+        parser.error(
+            "--robot-actions execute requires --confirm-g1-actions"
+        )
+    if args.confirm_g1_actions and args.robot_actions != "execute":
+        parser.error(
+            "--confirm-g1-actions requires --robot-actions execute"
+        )
+
+    validate_robot_led_arguments(parser, args)
 
     if args.record_log is not None and args.elder_id is None:
         parser.error("--record-log requires explicit --elderly-id")
@@ -985,6 +1143,10 @@ def main():
             listen_seconds=args.listen_seconds,
             announce_decisions=args.announce_decisions,
             record_elder_needs=not args.no_need_write,
+            robot_actions=args.robot_actions,
+            confirm_g1_actions=args.confirm_g1_actions,
+            robot_leds=args.robot_leds,
+            confirm_g1_led_demo=args.confirm_g1_led_demo,
         )
 
     run_recorded_scene(
