@@ -218,6 +218,78 @@ class RobotLedClientTests(unittest.TestCase):
 
         self.assertEqual([command[-1] for command in calls], ["25", "22"])
 
+    def test_real_wrapper_process_group_is_cancelled_before_next_effect(self):
+        """A newer effect must stop wrapper descendants, not just its shell.
+
+        The real teammate wrapper has a shell pipeline and may keep a dynamic
+        effect alive.  This local stand-in deliberately backgrounds a child
+        that ignores the first SIGINT; seeing its TERM cleanup marker proves
+        the process-group escalation reached it before the next effect runs.
+        """
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            script = root / "g1_companion_led_test.sh"
+            started = root / "started"
+            stopped = root / "stopped"
+            script.write_text(
+                "#!/usr/bin/env bash\n"
+                "set -eu\n"
+                "if [ \"$2\" = \"25\" ]; then\n"
+                "  (\n"
+                "    trap '' INT\n"
+                f"    trap 'printf stopped > {stopped}' TERM\n"
+                "    while :; do sleep 30; done\n"
+                "  ) &\n"
+                f"  printf started > {started}\n"
+                "  wait $!\n"
+                "fi\n",
+                encoding="utf-8",
+            )
+            client = RobotLedClient(
+                mode="execute",
+                confirm_writes=True,
+                script_path=script,
+                command_timeout=5.0,
+            )
+
+            self.assertEqual(client.show("listening")["status"], "started")
+            deadline = time.monotonic() + 1.0
+            while not started.exists() and time.monotonic() < deadline:
+                time.sleep(0.01)
+            self.assertTrue(started.exists())
+
+            self.assertEqual(client.show("farewell")["status"], "started")
+            self.assertTrue(client.wait_for_idle(4.0))
+            self.assertTrue(stopped.exists())
+            self.assertEqual(client.last_execution["status"], "completed")
+            self.assertEqual(client.last_execution["event"], "farewell")
+
+    def test_real_wrapper_timeout_returns_after_group_cleanup(self):
+        with tempfile.TemporaryDirectory() as directory:
+            script = Path(directory) / "g1_companion_led_test.sh"
+            script.write_text(
+                "#!/usr/bin/env bash\n"
+                "set -eu\n"
+                "sleep 30 &\n"
+                "wait $!\n",
+                encoding="utf-8",
+            )
+            client = RobotLedClient(
+                mode="execute",
+                confirm_writes=True,
+                script_path=script,
+                command_timeout=0.1,
+            )
+
+            started_at = time.monotonic()
+            self.assertEqual(client.show("processing")["status"], "started")
+            self.assertTrue(client.wait_for_idle(3.0))
+            elapsed = time.monotonic() - started_at
+
+        self.assertEqual(client.last_execution["status"], "timeout")
+        self.assertLess(elapsed, 3.0)
+
 
 class RobotLedArgumentTests(unittest.TestCase):
     def _parser(self):

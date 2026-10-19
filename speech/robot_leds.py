@@ -12,6 +12,7 @@ semantic request, while ``execute`` additionally requires the explicit
 from __future__ import annotations
 
 import os
+import signal
 import subprocess
 import threading
 import time
@@ -27,6 +28,37 @@ DEFAULT_LED_SCRIPT = Path(
         str(REPO_ROOT / "scripts" / "g1_companion_led_test.sh"),
     )
 )
+
+
+def _seconds_from_environment(name: str, default: float) -> float:
+    """Read a positive timeout override without making startup fragile."""
+
+    raw_value = os.environ.get(name)
+    if raw_value is None:
+        return default
+    try:
+        value = float(raw_value)
+    except (TypeError, ValueError):
+        return default
+    return value if value > 0 else default
+
+
+# The separately owned wrapper runs an SDK check and CMake on every call.  A
+# two-second deadline is too short even when its final LED effect is one-shot.
+# Speech execution remains non-blocking because commands run on a worker.
+DEFAULT_COMMAND_TIMEOUT = _seconds_from_environment(
+    "G1_LED_COMMAND_TIMEOUT", 30.0
+)
+INTERRUPT_GRACE_SECONDS = _seconds_from_environment(
+    "G1_LED_INTERRUPT_GRACE_SECONDS", 0.75
+)
+TERMINATE_GRACE_SECONDS = _seconds_from_environment(
+    "G1_LED_TERMINATE_GRACE_SECONDS", 0.75
+)
+
+
+class _LedRequestCancelled(Exception):
+    """Raised internally after a newer LED state supersedes a running one."""
 
 
 # These numbers are maintained by the separately owned G1 LED script.  The
@@ -69,10 +101,12 @@ class RobotLedClient:
 
     ``off`` does not invoke the script.  ``dry-run`` prints the request only.
     ``execute`` uses one background worker, so a slow ROS or hardware command
-    cannot delay ASR/TTS.  Requests remain ordered and, while a command is in
-    progress, only the newest pending effect is retained.  Any unavailable
-    script or command failure is returned as status data and never raises into
-    a speech scene.
+    cannot delay ASR/TTS.  The externally owned wrapper builds before every
+    invocation and can keep a dynamic effect alive.  Each invocation therefore
+    gets its own process group: a newer state interrupts the old group, and a
+    deadline cleans up the wrapper and all of its pipeline children.  Any
+    unavailable script or command failure is returned as status data and never
+    raises into a speech scene.
     """
 
     MODES = frozenset({"off", "dry-run", "execute"})
@@ -83,7 +117,7 @@ class RobotLedClient:
         mode: str = "dry-run",
         confirm_writes: bool = False,
         script_path: Path | str | None = None,
-        command_timeout: float = 2.0,
+        command_timeout: float = DEFAULT_COMMAND_TIMEOUT,
         runner: Callable[..., Any] | None = None,
     ) -> None:
         normalized_mode = str(mode).strip().lower()
@@ -98,7 +132,13 @@ class RobotLedClient:
             script_path if script_path is not None else DEFAULT_LED_SCRIPT
         )
         self.command_timeout = float(command_timeout)
-        self._runner = runner or subprocess.run
+        if self.command_timeout <= 0:
+            raise ValueError("robot LED command timeout must be positive")
+        # ``runner`` is intentionally retained for deterministic unit tests
+        # and existing callers.  Real executions use the process-group runner
+        # below; subprocess.run(timeout=...) only kills the shell wrapper and
+        # can leave its CMake or LED pipeline children behind.
+        self._runner = runner
         self._last_effect: int | None = None
         self._last_requested_at = 0.0
         self._request_lock = threading.Lock()
@@ -107,6 +147,10 @@ class RobotLedClient:
         self._idle = threading.Event()
         self._idle.set()
         self._last_execution: dict[str, Any] | None = None
+        self._active_cancel: threading.Event | None = None
+        self._active_effect: int | None = None
+        self._active_process: subprocess.Popen[str] | None = None
+        self._closed = False
 
     @staticmethod
     def available_events() -> tuple[str, ...]:
@@ -150,25 +194,137 @@ class RobotLedClient:
             flush=True,
         )
 
+    @staticmethod
+    def _output_text(value: Any) -> str:
+        if isinstance(value, bytes):
+            return value.decode(errors="replace")
+        return str(value or "")
+
+    @staticmethod
+    def _signal_process_group(
+        process: subprocess.Popen[str], signal_number: int
+    ) -> None:
+        """Signal a wrapper and its CMake/LED pipeline, never this process."""
+
+        try:
+            # start_new_session=True makes process.pid the group's PGID.
+            # Do this even after the shell wrapper exits: a background build
+            # child can still retain stdout and keep communicate() blocked.
+            os.killpg(process.pid, signal_number)
+        except (ProcessLookupError, PermissionError):
+            return
+        except OSError:
+            # The fallback still protects the direct wrapper on unusual hosts.
+            try:
+                process.send_signal(signal_number)
+            except (OSError, ProcessLookupError):
+                return
+
+    def _stop_process_group(self, process: subprocess.Popen[str]) -> str:
+        """Give the LED binary a cleanup interrupt, then guarantee reaping."""
+
+        for signal_number, grace in (
+            (signal.SIGINT, INTERRUPT_GRACE_SECONDS),
+            (signal.SIGTERM, TERMINATE_GRACE_SECONDS),
+        ):
+            self._signal_process_group(process, signal_number)
+            try:
+                output, _ = process.communicate(timeout=grace)
+                return self._output_text(output)
+            except subprocess.TimeoutExpired:
+                continue
+
+        self._signal_process_group(process, signal.SIGKILL)
+        output, _ = process.communicate()
+        return self._output_text(output)
+
+    def _run_process_group(
+        self,
+        command: list[str],
+        cancel: threading.Event,
+    ) -> subprocess.CompletedProcess[str]:
+        """Run the external wrapper with cancellation-safe child cleanup."""
+
+        process = subprocess.Popen(
+            command,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+        with self._request_lock:
+            self._active_process = process
+
+        deadline = time.monotonic() + self.command_timeout
+        try:
+            while True:
+                if cancel.is_set():
+                    self._stop_process_group(process)
+                    raise _LedRequestCancelled()
+
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    output = self._stop_process_group(process)
+                    raise subprocess.TimeoutExpired(
+                        command,
+                        self.command_timeout,
+                        output=output,
+                    )
+
+                try:
+                    output, _ = process.communicate(
+                        timeout=min(0.1, remaining)
+                    )
+                    return subprocess.CompletedProcess(
+                        command,
+                        int(process.returncode or 0),
+                        self._output_text(output),
+                    )
+                except subprocess.TimeoutExpired:
+                    # Re-enter communicate so its internal reader continues
+                    # draining build output while we check cancellation.
+                    continue
+        finally:
+            with self._request_lock:
+                if self._active_process is process:
+                    self._active_process = None
+
     def _execute_request(
         self,
         request: dict[str, Any],
+        cancel: threading.Event,
     ) -> dict[str, Any]:
         """Run one already-authorized command on the LED worker thread."""
 
         effect = int(request["effect"])
 
         try:
-            result = self._runner(
-                request["command"],
-                text=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                timeout=self.command_timeout,
-                check=False,
+            if self._runner is None:
+                result = self._run_process_group(request["command"], cancel)
+            else:
+                result = self._runner(
+                    request["command"],
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    timeout=self.command_timeout,
+                    check=False,
+                )
+        except _LedRequestCancelled:
+            print(
+                "灯光已切换: 新状态已取消上一条 LED 脚本进程组",
+                flush=True,
             )
+            return {
+                "status": "cancelled",
+                "event": request["event"],
+                "effect": effect,
+            }
         except subprocess.TimeoutExpired:
-            print("灯光执行失败: LED 脚本超时", flush=True)
+            print(
+                "灯光执行失败: LED 脚本超时，已清理其进程组",
+                flush=True,
+            )
             return {
                 "status": "timeout",
                 "event": request["event"],
@@ -194,7 +350,7 @@ class RobotLedClient:
                 "error": repr(error),
             }
 
-        output = str(getattr(result, "stdout", "") or "").strip()
+        output = self._output_text(getattr(result, "stdout", "")).strip()
         if output:
             for line in output.splitlines():
                 print(f"灯光执行器: {line}", flush=True)
@@ -214,12 +370,19 @@ class RobotLedClient:
         }
 
     def _run_pending_requests(self) -> None:
-        """Run requests serially; coalesce updates that arrive while busy."""
+        """Run requests serially; coalesce and preempt obsolete LED effects."""
 
         while True:
             with self._request_lock:
                 request = self._pending_request
                 self._pending_request = None
+
+                if request is not None:
+                    cancel = threading.Event()
+                    self._active_cancel = cancel
+                    self._active_effect = int(request["effect"])
+                else:
+                    cancel = None
 
             if request is None:
                 with self._request_lock:
@@ -232,14 +395,42 @@ class RobotLedClient:
                     self._idle.set()
                     return
 
-            result = self._execute_request(request)
+            result = self._execute_request(request, cancel)
             with self._request_lock:
                 self._last_execution = result
+                if self._active_cancel is cancel:
+                    self._active_cancel = None
+                    self._active_effect = None
 
     def wait_for_idle(self, timeout: float | None = None) -> bool:
         """Test/support hook; scenes never wait for LED hardware."""
 
         return self._idle.wait(timeout)
+
+    def close(self, timeout: float = 2.0) -> bool:
+        """Explicitly cancel a live wrapper and reject later LED requests.
+
+        The script's own comment says Ctrl+C is its cleanup path.  Scenes do
+        not call this automatically: keeping the worker non-daemon lets a
+        final farewell effect finish (or hit its finite command timeout)
+        before interpreter shutdown.
+        """
+
+        with self._request_lock:
+            self._closed = True
+            self._pending_request = None
+            cancel = self._active_cancel
+            worker = self._worker
+            if cancel is not None:
+                cancel.set()
+
+        if (
+            worker is not None
+            and worker.is_alive()
+            and worker is not threading.current_thread()
+        ):
+            worker.join(max(0.0, float(timeout)))
+        return self._idle.is_set()
 
     @property
     def last_execution(self) -> dict[str, Any] | None:
@@ -317,18 +508,46 @@ class RobotLedClient:
             }
 
         with self._request_lock:
+            if self._closed:
+                print("灯光跳过: 灯光客户端已关闭", flush=True)
+                return {
+                    "status": "closed",
+                    "event": request["event"],
+                    "effect": effect,
+                }
+
+            active_cancel = self._active_cancel
+            if (
+                not force
+                and active_cancel is not None
+                and self._active_effect == effect
+            ):
+                return {
+                    "status": "active",
+                    "event": request["event"],
+                    "effect": effect,
+                }
+
             # If the current command is slow, a later state such as farewell
             # supersedes an obsolete listening/processing effect instead of
-            # creating an unbounded queue.
+            # creating an unbounded queue.  The real process-group runner sees
+            # this cancellation within 100ms and cleans its wrapper children.
             self._pending_request = request
             self._idle.clear()
+
+            if active_cancel is not None:
+                active_cancel.set()
 
             worker = self._worker
             if worker is None or not worker.is_alive():
                 worker = threading.Thread(
                     target=self._run_pending_requests,
                     name="g1-led-effect",
-                    daemon=True,
+                    # Keep the process alive through a final farewell request.
+                    # The process-group runner gives the external wrapper a
+                    # finite deadline, so this cannot leave an orphaned CMake
+                    # or LED process behind at interpreter shutdown.
+                    daemon=False,
                 )
                 self._worker = worker
                 worker.start()

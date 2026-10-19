@@ -16,11 +16,25 @@
 
 脚本路径默认是项目根目录的 `scripts/g1_companion_led_test.sh`。若脚本仍只在队友的其他路径，可先用环境变量覆盖：`G1_LED_SCRIPT=/实际/脚本路径`。脚本不存在、超时或返回失败时，语音场景会继续运行。
 
+当前主机脚本会在每次真实灯效前校验 SDK、配置并构建 LED 程序。`speech` 因此使用独立进程组执行它，默认最长等待 30 秒；超时或被新的灯光状态取代时，会清理脚本及其构建、管道子进程。若主机实测一次执行需要更久，在启动场景前设置 `G1_LED_COMMAND_TIMEOUT` 为略大于实测值的秒数。不要并行运行手动灯效命令和语音场景，它们共享同一个 `build/` 目录。
+
 在首次启用真实头灯前，先确认主机上确实有这个队友维护的脚本：
 
 ```bash
 test -f /home/user/github-product/g1-dex3-care-vla/scripts/g1_companion_led_test.sh
 ```
+
+首次真机彩排前，先串行完成 SDK 预检和无硬件写入的构建预热：
+
+```bash
+(
+  cd /home/user/github-product/g1-dex3-care-vla || exit 1
+  time bash scripts/g1_companion_led_test.sh --check-sdk
+  time bash scripts/g1_companion_led_test.sh --dry-run 25
+)
+```
+
+`--dry-run 25` 不会写入 G1；它的 `real` 时间可用来判断是否需要提高 `G1_LED_COMMAND_TIMEOUT`。真实灯效的 JSON 记录由脚本保存到 `runs/companion-led/`。
 
 当前 Git 仓库尚未包含该脚本；若检查失败，请由脚本所有者提交它，或设置 `G1_LED_SCRIPT` 指向已经验证过的实际路径。
 
