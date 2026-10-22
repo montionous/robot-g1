@@ -86,6 +86,10 @@ PREPARED_PROMPTS = PreparedPromptCatalog(
     SCENE_DIR / "prepared_prompts.json"
 )
 
+# Match the existing entertainment scene's lead for the recorded invite.
+# Its slow start should happen before the first care reply is spoken.
+ACKNOWLEDGE_LEAD_SECONDS = 1.5
+
 
 CARE_DOMAIN_LABELS = {
     "mobility":
@@ -1161,11 +1165,17 @@ def run_scene(
                     not acknowledged_once
                     and not result.get("transfer_to")
                 ):
-                    trigger_robot_action(
+                    action_result = trigger_robot_action(
                         actions,
                         "acknowledge",
                         source="care_consultation_support:first_reply",
                     )
+                    if (
+                        isinstance(action_result, dict)
+                        and action_result.get("status") == "started"
+                    ):
+                        log("抬手起势提前量", f"{ACKNOWLEDGE_LEAD_SECONDS:.1f} 秒")
+                        time.sleep(ACKNOWLEDGE_LEAD_SECONDS)
                     acknowledged_once = True
 
                 speak(

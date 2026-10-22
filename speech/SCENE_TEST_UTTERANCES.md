@@ -63,6 +63,10 @@ test -f /home/user/github-product/g1-dex3-care-vla/scripts/g1_companion_led_test
 
 入口：`scenarios/care_consultation_support/run_g1_demo.sh`。同一入口加 `--showcase` 就是比赛展示模式；展示模式不写正式长期护理记忆和工作人员事项。
 
+首次有效护理回复的自定义抬手起势较慢：动作执行器成功启动后，先留出 1.5 秒，
+再播报这条护理回复。该提前量沿用娱乐场景的做法，只作用于本次会话的首次确认动作；
+关闭、dry-run、忙碌或未成功启动动作时不增加等待，后续回复和官方挥手告别保持原时序。
+
 | 顺序 | 测试语句 | 预期结果 |
 | --- | --- | --- |
 | 1 | `我今天膝盖有点酸。` | 进入护理咨询，低风险活动不适。 |
