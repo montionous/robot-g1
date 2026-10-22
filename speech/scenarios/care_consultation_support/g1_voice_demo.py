@@ -87,7 +87,7 @@ PREPARED_PROMPTS = PreparedPromptCatalog(
 )
 
 # Match the existing entertainment scene's lead for the recorded invite.
-# Its slow start should happen before the first care reply is spoken.
+# Its slow start should happen before a supportive care reply is spoken.
 ACKNOWLEDGE_LEAD_SECONDS = 1.5
 
 
@@ -145,6 +145,25 @@ def trigger_robot_action(
     except Exception as exc:
         log("机器人动作异常", repr(exc))
         return None
+
+
+def should_acknowledge_care_reply(result):
+    """Only accompany a direct reassurance; routine questions never opt in.
+
+    Keep a conservative set of opening phrases rather than searching quoted
+    advice or symptoms anywhere in the reply. No matching phrase means no arm
+    gesture. The caller limits this to one opportunity per consultation.
+    """
+    if result.get("transfer_to") or result.get("state") == "ENDED":
+        return False
+    reply = str(result.get("reply") or "").strip()
+    return reply.startswith((
+        "您先别着急", "您别着急", "先别着急", "别着急",
+        "您先别担心", "您别担心", "先别担心", "别担心",
+        "我会陪着您", "我在这儿陪着您", "我在这里陪着您",
+        "我会在这里陪着您", "我会一直陪着您", "咱们慢慢来",
+        "我会认真听您说",
+    ))
 
 
 def log_memory_persistence(
@@ -534,10 +553,7 @@ def build_care_decision_message(
             "staff_follow_up_simulated"
         ):
 
-            decision_text += (
-                "当前为演示模式，"
-                "已模拟生成工作人员关注事项。"
-            )
+            log("工作人员关注事项", "当前为演示模式，已模拟生成工作人员关注事项。")
 
 
         return decision_text
@@ -1163,12 +1179,12 @@ def run_scene(
 
                 if (
                     not acknowledged_once
-                    and not result.get("transfer_to")
+                    and should_acknowledge_care_reply(result)
                 ):
                     action_result = trigger_robot_action(
                         actions,
                         "acknowledge",
-                        source="care_consultation_support:first_reply",
+                        source="care_consultation_support:supportive_reply",
                     )
                     if (
                         isinstance(action_result, dict)
@@ -1328,6 +1344,7 @@ def run_scene(
                             "长期护理记忆",
                             "演示预览",
                         )
+                        log("演示模式", memory_announcement["console_text"])
 
                         memory_key = (
                             memory_announcement.get(

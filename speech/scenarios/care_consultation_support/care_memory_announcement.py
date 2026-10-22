@@ -121,9 +121,9 @@ def build_memory_announcement(
                     + "。"
                     "这些信息以后可以作为"
                     "个体化护理参考。"
-                    "当前为演示模式，"
-                    "不会写入正式护理档案。"
                 ),
+
+            "console_text": "当前为演示模式，不会写入正式护理档案。",
 
             "kind":
                 "preview",

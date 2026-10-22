@@ -488,9 +488,9 @@ def main():
                 assert memory.get("preview") is True
                 assert memory.get("stored") is False
                 assert announcement["kind"] == "preview"
-                assert "不会写入正式护理档案" in (
-                    announcement["text"]
-                )
+                assert "不会写入正式护理档案" in announcement["console_text"]
+                assert "演示模式" not in announcement["text"]
+                assert "不会写入" not in announcement["text"]
 
                 print("PASS: 长期护理记忆预览")
 
