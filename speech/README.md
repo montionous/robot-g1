@@ -8,6 +8,38 @@
 四个场景的逐轮测试语句、头灯语义和安全启用方式见
 [SCENE_TEST_UTTERANCES.md](SCENE_TEST_UTTERANCES.md)。
 
+## 娱乐陪伴核对（2026-10-22）
+
+普通版和展示版在媒体播放中保留对应灯效：音乐 `media_music`（12，琥珀呼吸）、新闻
+`media_news`（10，暖白呼吸）、戏曲 `media_opera`（6，紫色稳亮）。后台 ASR
+不覆盖媒体灯；自然播放结束后恢复倾听，新控制和结束会抢占原灯效。
+只有 `--robot-leds execute --confirm-g1-led-demo` 允许真实灯光执行；
+灯光说明也只在 execute 模式加入回复，执行失败仍需查看灯光回执。
+
+陕西话回复由同一生成逻辑提供。历史优先只用于泛音乐/戏曲请求，依据最近 100 条
+completed 记录中的明确作品点播，先比较次数、再比较最近记录；下一首、新闻及类别请求
+本身不增加作品偏好。选曲结果携带本次选择依据，回复不再次读库。无历史或读取失败
+维持默认曲库顺序。新增灯光固定短句已列入 `prepared_prompts.json`；本轮未请求云端
+合成或生成 WAV，部署时可按 [预生成说明](PREPARED_AUDIO.md) 补齐，动态曲名仍走实时合成。
+
+展示版保留本地已配置的老人 ID 默认值 1 和默认需求记录，可用 `--elder-id` 指定绑定档案、
+`--no-need-write` 关闭写入；这不代表自动身份识别。
+`seed_demo_music_preference.py` 保留默认只读预览及显式 `--apply` 写入门禁。
+`demo_fixture=true` 是模拟偏好，不能作为老人真实点播或实际播放完成的证据；本轮未执行种子写入。
+
+长时媒体灯效依赖机器人主机已有的 `scripts/g1_companion_led_test.sh` 和 C++ LED 程序支持
+`--media`（仅 6/10/12）。Z 盘源码已有这部分支持；核对时 GitHub `main` 尚未包含
+LED 脚本与对应 C++ 源文件。本轮只同步 `speech/`，新部署需另行由底层 owner 提供
+这些依赖，不能把本轮离线结果视为实机颜色、驻留时长或声音验收。
+
+纯离线回归（在 speech 目录、依赖已安装的 Python 环境中）：
+
+```bash
+python -B -m unittest test_entertainment_media_preferences test_companion_entertainment_showcase test_robot_leds test_elder_need_integration test_prepared_audio test_companion_scene_recording test_speech_client_cleanup
+```
+
+测试使用替身 ASR/TTS、媒体播放器及临时数据库；Windows 会跳过三项 POSIX 进程组/脚本测试。
+
 第一阶段先在 Windows 验证 Qwen-Audio-3.0-TTS-Flash。
 
 ## 1. 环境

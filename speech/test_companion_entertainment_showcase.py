@@ -39,6 +39,7 @@ from demo_protocol import (
     PLAY_MUSIC,
     SWITCH_NEWS,
     SWITCH_OPERA,
+    SPECIFIC_MEDIA_REQUEST,
     WAIT_MUSIC_REQUEST,
 )
 
@@ -159,10 +160,12 @@ class ShowcaseIntentTest(
             )
         )
 
-        self.assertEqual(
-            result["intent"],
-            OTHER,
-        )
+        self.assertEqual(result["intent"], OTHER)
+        controller = ShowcaseController()
+        controller.state = PLAYING_MUSIC_FIRST
+        self.assertEqual(controller.handle(result["intent"])["action"], "ignore")
+        self.assertEqual(controller.handle(SWITCH_NEWS)["action"], "ignore")
+        self.assertEqual(controller.state, PLAYING_MUSIC_FIRST)
 
 
     def test_news_after_next(self):
@@ -189,10 +192,12 @@ class ShowcaseIntentTest(
             )
         )
 
-        self.assertEqual(
-            result["intent"],
-            OTHER,
-        )
+        self.assertEqual(result["intent"], OTHER)
+        controller = ShowcaseController()
+        controller.state = PLAYING_NEWS
+        self.assertEqual(controller.handle(result["intent"])["action"], "ignore")
+        self.assertEqual(controller.handle(SPECIFIC_MEDIA_REQUEST)["action"], "ignore")
+        self.assertEqual(controller.state, PLAYING_NEWS)
 
 
     def test_generic_opera_is_allowed(self):
@@ -238,10 +243,12 @@ class ShowcaseIntentTest(
             )
         )
 
-        self.assertEqual(
-            result["intent"],
-            OTHER,
-        )
+        self.assertEqual(result["intent"], OTHER)
+        controller = ShowcaseController()
+        controller.state = PLAYING_NEWS
+        self.assertEqual(controller.handle(result["intent"])["action"], "ignore")
+        self.assertEqual(controller.handle(NEXT_MUSIC)["action"], "ignore")
+        self.assertEqual(controller.state, PLAYING_NEWS)
 
 
     def test_high_confidence_llm_fallback_is_accepted(self):

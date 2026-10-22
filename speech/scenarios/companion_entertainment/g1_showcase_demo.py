@@ -89,6 +89,7 @@ from g1_media_player import (
 
 from speech.reply.companion_entertainment import (
     generate_reply,
+    append_led_notice as append_category_led_notice,
 )
 
 
@@ -471,6 +472,12 @@ def announce(
     )
 
 
+def append_led_notice(reply, intent, *, enabled):
+    """在真实灯光模式下，把主动调灯说明融入原回复。"""
+    category = {PLAY_MUSIC: "music", SWITCH_NEWS: "news", SWITCH_OPERA: "opera"}.get(intent)
+    return append_category_led_notice(reply, category, enabled=enabled)
+
+
 def start_media_result(
     *,
     speech,
@@ -478,6 +485,7 @@ def start_media_result(
     intent,
     result,
     announce_decisions,
+    led_announcement=False,
 ):
     # 切换内容时，
     # 先关闭旧媒体。
@@ -532,6 +540,14 @@ def start_media_result(
             intent
         )
 
+    # 仅在成功播放时补充主动灯光说明。
+    if result.get("action") == "play":
+        reply = append_led_notice(
+            reply,
+            intent,
+            enabled=led_announcement,
+        )
+
     if reply:
         speak_interaction(
             speech,
@@ -570,6 +586,7 @@ def execute_action(
     entertainment,
     player,
     announce_decisions,
+    led_announcement=False,
 ):
     if action == PLAY_MUSIC:
 
@@ -596,6 +613,7 @@ def execute_action(
             result=result,
             announce_decisions=
                 announce_decisions,
+            led_announcement=led_announcement,
         )
 
         return
@@ -625,6 +643,7 @@ def execute_action(
             result=result,
             announce_decisions=
                 announce_decisions,
+            led_announcement=led_announcement,
         )
 
         return
@@ -654,6 +673,7 @@ def execute_action(
             result=result,
             announce_decisions=
                 announce_decisions,
+            led_announcement=led_announcement,
         )
 
         return
@@ -683,6 +703,7 @@ def execute_action(
             result=result,
             announce_decisions=
                 announce_decisions,
+            led_announcement=led_announcement,
         )
 
         return
@@ -698,11 +719,12 @@ def execute_action(
                 announce_decisions,
         )
 
+        end_reply = INTERACTION_REPLIES[END]
+        if led_announcement:
+            end_reply += " 我把灯光也收一收。"
         speak_interaction(
             speech,
-            INTERACTION_REPLIES[
-                END
-            ],
+            end_reply,
         )
 
         return
@@ -721,7 +743,7 @@ def run_scene(
     robot_actions,
     confirm_g1_actions,
     elderly_id=None,
-    record_elder_needs=False,
+    record_elder_needs=True,
     robot_leds="off",
     confirm_g1_led_demo=False,
 ):
@@ -828,9 +850,15 @@ def run_scene(
         ),
     )
 
+    opening_reply = OPENING
+    if robot_leds == "execute":
+        opening_reply += (
+            " 您说话时我会亮起倾听灯光，"
+            "换节目我也会自己调整。"
+        )
     speak_interaction(
         speech,
-        OPENING,
+        opening_reply,
     )
 
     state_started = (
@@ -849,11 +877,19 @@ def run_scene(
         "listening",
         source="companion_entertainment_showcase:live_listen",
     )
+    media_led_event = None
 
     try:
 
 
         while not showcase.done:
+
+            if media_led_event and not player.is_playing():
+                media_led_event = None
+                leds.show(
+                    "listening",
+                    source="companion_entertainment_showcase:media_finished",
+                )
 
             if (
                 state_timeout > 0
@@ -1129,7 +1165,7 @@ def run_scene(
             )
 
             # 只发布固定状态机已经接受的有效老人需求。
-            # 展示版默认只读，不写正式需求历史。
+            # 展示版记录有效老人指令；模拟偏好单独由初始化脚本维护。
             need_command = {
                 PLAY_MUSIC: {
                     "action": "play_category",
@@ -1228,16 +1264,30 @@ def run_scene(
                     player=player,
                     announce_decisions=
                         announce_decisions,
+                    led_announcement=(robot_leds == "execute"),
                 )
 
                 execution_succeeded = True
 
                 if action == END:
+                    media_led_event = None
                     leds.show(
                         "farewell",
                         source="companion_entertainment_showcase:end",
                     )
+                elif player.is_playing():
+                    media_led_event = {
+                        PLAY_MUSIC: "media_music",
+                        NEXT_MUSIC: "media_music",
+                        SWITCH_NEWS: "media_news",
+                        SWITCH_OPERA: "media_opera",
+                    }.get(action, media_led_event)
+                    leds.show(
+                        media_led_event or "acknowledged",
+                        source="companion_entertainment_showcase:media_playing",
+                    )
                 else:
+                    media_led_event = None
                     leds.show(
                         "acknowledged",
                         source="companion_entertainment_showcase:response",
@@ -1262,10 +1312,11 @@ def run_scene(
                         listen_seconds,
                 )
 
-                leds.show(
-                    "listening",
-                    source="companion_entertainment_showcase:resume_listen",
-                )
+                if not player.is_playing():
+                    leds.show(
+                        "listening",
+                        source="companion_entertainment_showcase:resume_listen",
+                    )
 
             # 只有合法控制真正执行后，
             # 才重置当前阶段的超时计时。
@@ -1369,15 +1420,24 @@ def main():
     parser.add_argument(
         "--elder-id",
         type=int,
-        default=None,
-        help="读取指定老人的历史点播",
+        default=1,
+        help="当前服务对象档案ID（默认1，为预先绑定，不是身份识别）",
     )
 
-    parser.add_argument(
+    record_mode = parser.add_mutually_exclusive_group()
+    record_mode.add_argument(
         "--record-elder-needs",
+        dest="record_elder_needs",
         action="store_true",
-        help="明确允许展示版写入共享需求库",
+        help="兼容旧参数：显式开启写入（演示版目前默认开启）",
     )
+    record_mode.add_argument(
+        "--no-need-write",
+        dest="record_elder_needs",
+        action="store_false",
+        help="本次演示只读共享库，不记录新需求",
+    )
+    parser.set_defaults(record_elder_needs=True)
 
     args = parser.parse_args()
 

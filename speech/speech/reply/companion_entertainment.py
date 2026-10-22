@@ -1,6 +1,19 @@
 from __future__ import annotations
 
 
+def append_led_notice(reply, category, *, enabled):
+    """Only describe LED changes when physical LED execution is enabled."""
+    if not enabled or not reply:
+        return reply
+    notices = {
+        "music": "我给您把灯光也调一下，听歌更有气氛。",
+        "news": "我给您把灯光也调一下，咱专心听新闻。",
+        "opera": "我给您把灯光也调一下，听戏更有味道。",
+    }
+    notice = notices.get(category)
+    return f"{reply} {notice}" if notice else reply
+
+
 def generate_reply(
     command: dict,
     result: dict,
@@ -31,17 +44,28 @@ def generate_reply(
             "preferred_opera": "贵妃醉酒",
         }
 
-        当前仅预留接口，
-        后续接共享需求数据库。
-    后续可接：
-        - 老人偏好
-        - 历史点播
-        - LLM生成候选话术
+        当前预留附加上下文接口。
+        历史选曲依据由 controller 的 selection_reason 传入，
+        回复层不重新查询共享数据库。
     """
 
     original = result.get(
         "reply"
     )
+
+    play_item = result.get("play_item") or {}
+    title = play_item.get("title")
+    category = command.get("category") or result.get("category")
+    if (
+        result.get("action") == "play"
+        and command.get("action") == "play_category"
+        and category in {"music", "opera"}
+        and result.get("selection_reason") == "history"
+        and title
+    ):
+        if dialect == "shaanxi":
+            return f"好嘞，点播偏好里有《{title}》，今儿咱就先听这首。"
+        return f"好的，按点播偏好为您优先播放《{title}》。"
 
     if dialect != "shaanxi":
         return original

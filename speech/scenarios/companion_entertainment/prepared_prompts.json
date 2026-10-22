@@ -182,6 +182,30 @@
       "text": "检测到本地媒体库中没有匹配到您指定的内容。",
       "style": "companion",
       "dialect": "mandarin"
+    },
+    {
+      "id": "play_music_led_shaanxi",
+      "text": "好嘞，给您放点音乐，咱慢慢听。 我给您把灯光也调一下，听歌更有气氛。",
+      "style": "companion",
+      "dialect": "shaanxi"
+    },
+    {
+      "id": "play_news_led_shaanxi",
+      "text": "成，咱听听新闻，看看有啥新消息。 我给您把灯光也调一下，咱专心听新闻。",
+      "style": "companion",
+      "dialect": "shaanxi"
+    },
+    {
+      "id": "play_opera_led_shaanxi",
+      "text": "好嘞，咱听段戏。 我给您把灯光也调一下，听戏更有味道。",
+      "style": "companion",
+      "dialect": "shaanxi"
+    },
+    {
+      "id": "end_led_shaanxi",
+      "text": "好嘞，那咱今儿就先听到这儿。您啥时候想听了，再叫我就成。 我把灯光也收一收。",
+      "style": "companion",
+      "dialect": "shaanxi"
     }
   ]
 }

@@ -128,6 +128,7 @@ class EntertainmentController:
         item = self.library.first(
             category
         )
+        selection_reason = "default"
 
         # 历史主动点播优先；无历史或不可用时保持原顺序。
         if category in ("music", "opera"):
@@ -139,6 +140,7 @@ class EntertainmentController:
 
                     if preferred is not None:
                         item = preferred
+                        selection_reason = "history"
 
                 except Exception as exc:
                     print(
@@ -162,9 +164,11 @@ class EntertainmentController:
                 stop_playback=True,
             )
 
-        return self._play_item(
-            item
-        )
+        result = self._play_item(item)
+        # Keep the reason tied to this selection; narration must not query a
+        # second, potentially changed history snapshot after choosing a file.
+        result["selection_reason"] = selection_reason
+        return result
 
 
     def next_item(self):

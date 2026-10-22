@@ -71,6 +71,7 @@ from local_media_library import (
 
 from speech.reply.companion_entertainment import (
     generate_reply,
+    append_led_notice,
 )
 
 
@@ -479,6 +480,7 @@ def apply_result(
     announce_decisions,
     dialect,
     announcer_dialect="mandarin",
+    led_announcement=False,
 ):
 
     # 需要切换、停止或开始新内容时，
@@ -516,6 +518,11 @@ def apply_result(
         result,
         dialect=dialect,
     )
+
+    if result.get("action") == "play" and command.get("action") != "next":
+        reply = append_led_notice(
+            reply, result.get("category"), enabled=led_announcement,
+        )
 
     if reply:
 
@@ -683,10 +690,12 @@ def run_scene(
 
         live.start()
 
-        leds.show(
-            "listening",
-            source="companion_entertainment:live_listen",
-        )
+        # Background ASR may listen while a media-specific LED stays visible.
+        if not player.is_playing():
+            leds.show(
+                "listening",
+                source="companion_entertainment:live_listen",
+            )
 
         log(
             "持续监听",
@@ -738,10 +747,19 @@ def run_scene(
     )
 
     start_live()
+    media_led_event = None
 
     try:
 
         while controller.active:
+
+            # Release media LED when the bridge finishes naturally.
+            if media_led_event and not player.is_playing():
+                media_led_event = None
+                leds.show(
+                    "listening",
+                    source="companion_entertainment:media_finished",
+                )
 
             event = live.get_event(
                 timeout=0.5
@@ -1091,6 +1109,7 @@ def run_scene(
                     announce_decisions=
                         announce_decisions,
                     dialect=dialect,
+                    led_announcement=(robot_leds == "execute"),
                 )
 
                 execution_succeeded = (
@@ -1101,11 +1120,25 @@ def run_scene(
                 )
 
                 if result.get("action") == "stop":
+                    media_led_event = None
                     leds.show(
                         "farewell",
                         source="companion_entertainment:stop",
                     )
+                elif player.is_playing():
+                    if result.get("action") == "play":
+                        category = result.get("category") or command.get("category")
+                        media_led_event = {
+                            "music": "media_music",
+                            "news": "media_news",
+                            "opera": "media_opera",
+                        }.get(category)
+                    leds.show(
+                        media_led_event or "acknowledged",
+                        source="companion_entertainment:media_playing",
+                    )
                 else:
+                    media_led_event = None
                     leds.show(
                         "acknowledged",
                         source="companion_entertainment:response",

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import gc
 import importlib.util
 import io
 import sqlite3
@@ -119,6 +120,9 @@ class ElderNeedIntegrationTest(unittest.TestCase):
     def tearDown(self):
         registry.DB_PATH = self.old_registry_path
         init_elder_need_db.DB_PATH = self.old_init_path
+        # SQLite connection contexts commit/rollback but do not close; collect
+        # their cycles before Windows removes the temporary database fixture.
+        gc.collect()
         self.temp.cleanup()
 
     def create_completed_need(self, *, category, code, details):

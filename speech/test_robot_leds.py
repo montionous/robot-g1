@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import io
+import os
 import subprocess
 import tempfile
 import threading
@@ -50,7 +51,7 @@ class RobotLedClientTests(unittest.TestCase):
             result["command"],
             [
                 "bash",
-                "/does/not/exist.sh",
+                str(Path("/does/not/exist.sh")),
                 "--confirm-g1-led-demo",
                 "18",
             ],
@@ -218,6 +219,7 @@ class RobotLedClientTests(unittest.TestCase):
 
         self.assertEqual([command[-1] for command in calls], ["25", "22"])
 
+    @unittest.skipUnless(os.name == "posix", "requires POSIX process groups")
     def test_real_wrapper_process_group_is_cancelled_before_next_effect(self):
         """A newer effect must stop wrapper descendants, not just its shell.
 
@@ -265,6 +267,7 @@ class RobotLedClientTests(unittest.TestCase):
             self.assertEqual(client.last_execution["status"], "completed")
             self.assertEqual(client.last_execution["event"], "farewell")
 
+    @unittest.skipUnless(os.name == "posix", "requires POSIX process groups")
     def test_real_wrapper_timeout_returns_after_group_cleanup(self):
         with tempfile.TemporaryDirectory() as directory:
             script = Path(directory) / "g1_companion_led_test.sh"

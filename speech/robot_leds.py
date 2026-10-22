@@ -12,6 +12,7 @@ semantic request, while ``execute`` additionally requires the explicit
 from __future__ import annotations
 
 import os
+import math
 import signal
 import subprocess
 import threading
@@ -40,7 +41,7 @@ def _seconds_from_environment(name: str, default: float) -> float:
         value = float(raw_value)
     except (TypeError, ValueError):
         return default
-    return value if value > 0 else default
+    return value if math.isfinite(value) and value > 0 else default
 
 
 # The separately owned wrapper runs an SDK check and CMake on every call.  A
@@ -49,6 +50,10 @@ def _seconds_from_environment(name: str, default: float) -> float:
 DEFAULT_COMMAND_TIMEOUT = _seconds_from_environment(
     "G1_LED_COMMAND_TIMEOUT", 30.0
 )
+MEDIA_LED_COMMAND_TIMEOUT = _seconds_from_environment(
+    "G1_MEDIA_LED_COMMAND_TIMEOUT", 1140.0
+)
+
 INTERRUPT_GRACE_SECONDS = _seconds_from_environment(
     "G1_LED_INTERRUPT_GRACE_SECONDS", 0.75
 )
@@ -88,6 +93,21 @@ LED_EVENTS: dict[str, dict[str, Any]] = {
     "farewell": {
         "effect": 22,
         "label": "场景结束（告别渐出）",
+    },
+    "media_music": {
+        "effect": 12,
+        "label": "音乐播放（琥珀色呼吸）",
+        "media": True,
+    },
+    "media_news": {
+        "effect": 10,
+        "label": "新闻播放（暖白色呼吸）",
+        "media": True,
+    },
+    "media_opera": {
+        "effect": 6,
+        "label": "戏曲播放（紫色稳亮）",
+        "media": True,
     },
     "off": {
         "effect": 0,
@@ -132,8 +152,8 @@ class RobotLedClient:
             script_path if script_path is not None else DEFAULT_LED_SCRIPT
         )
         self.command_timeout = float(command_timeout)
-        if self.command_timeout <= 0:
-            raise ValueError("robot LED command timeout must be positive")
+        if not math.isfinite(self.command_timeout) or self.command_timeout <= 0:
+            raise ValueError("robot LED command timeout must be finite and positive")
         # ``runner`` is intentionally retained for deterministic unit tests
         # and existing callers.  Real executions use the process-group runner
         # below; subprocess.run(timeout=...) only kills the shell wrapper and
@@ -156,13 +176,16 @@ class RobotLedClient:
     def available_events() -> tuple[str, ...]:
         return tuple(LED_EVENTS)
 
-    def _command_for(self, effect: int) -> list[str]:
-        return [
+    def _command_for(self, effect: int, *, media: bool = False) -> list[str]:
+        command = [
             "bash",
             str(self.script_path),
             "--confirm-g1-led-demo",
             str(effect),
         ]
+        if media:
+            command.append("--media")
+        return command
 
     def preview(
         self,
@@ -175,14 +198,18 @@ class RobotLedClient:
             raise ValueError(f"unknown robot LED event: {event}")
 
         effect = int(spec["effect"])
-        return {
+        media = bool(spec.get("media"))
+        request = {
             "event": str(event).strip().lower(),
             "effect": effect,
             "label": spec["label"],
             "source": str(source).strip() if source else "scene",
-            "command": self._command_for(effect),
+            "command": self._command_for(effect, media=media),
             "physical_led_writes": False,
         }
+        if media:
+            request["timeout_seconds"] = MEDIA_LED_COMMAND_TIMEOUT
+        return request
 
     @staticmethod
     def _print_request(request: dict[str, Any]) -> None:
@@ -242,6 +269,7 @@ class RobotLedClient:
         self,
         command: list[str],
         cancel: threading.Event,
+        timeout: float | None = None,
     ) -> subprocess.CompletedProcess[str]:
         """Run the external wrapper with cancellation-safe child cleanup."""
 
@@ -255,7 +283,8 @@ class RobotLedClient:
         with self._request_lock:
             self._active_process = process
 
-        deadline = time.monotonic() + self.command_timeout
+        actual_timeout = self.command_timeout if timeout is None else float(timeout)
+        deadline = time.monotonic() + actual_timeout
         try:
             while True:
                 if cancel.is_set():
@@ -267,7 +296,7 @@ class RobotLedClient:
                     output = self._stop_process_group(process)
                     raise subprocess.TimeoutExpired(
                         command,
-                        self.command_timeout,
+                        actual_timeout,
                         output=output,
                     )
 
@@ -300,14 +329,19 @@ class RobotLedClient:
 
         try:
             if self._runner is None:
-                result = self._run_process_group(request["command"], cancel)
+                if "timeout_seconds" in request:
+                    result = self._run_process_group(
+                        request["command"], cancel, timeout=request["timeout_seconds"]
+                    )
+                else:
+                    result = self._run_process_group(request["command"], cancel)
             else:
                 result = self._runner(
                     request["command"],
                     text=True,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
-                    timeout=self.command_timeout,
+                    timeout=request.get("timeout_seconds", self.command_timeout),
                     check=False,
                 )
         except _LedRequestCancelled:
