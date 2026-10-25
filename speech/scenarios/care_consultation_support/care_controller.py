@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from care_urgent_assistance import submit_urgent_assistance, urgent_reply
+
 
 from care_question_state import (
     analyze_care_questions, guard_care_questions, question_state_prompt, question_topics,
@@ -58,11 +60,14 @@ class CareConsultation:
         llm=None,
         dry_run=False,
         answer_judge=None,
+        record_urgent_needs=False,
     ):
 
         self.elderly_id = elderly_id
         self.session_id = session_id
         self.dry_run = bool(dry_run)
+        self.record_urgent_needs = bool(record_urgent_needs)
+        self.urgent_assistance = None
 
         # 仅作为模型上下文的轮次预算，
         # 不再用于强制结束护理咨询。
@@ -170,6 +175,7 @@ class CareConsultation:
             "shared_need_error":
                 self.shared_need_error,
 
+            "urgent_assistance": self.urgent_assistance,
             "question_state": self.last_question_state,
             "answer_decision": self.last_answer_decision,
 
@@ -202,6 +208,7 @@ class CareConsultation:
 
         if (
             not preclassified
+            and classify_risk(text, history=self.history).get("route_to") != "URGENT_ASSISTANCE"
             and not is_care_trigger(
                 text
             )
@@ -385,6 +392,37 @@ class CareConsultation:
             )
 
 
+        # Urgent facts take precedence over end-intent LLMs, family routing,
+        # personalization and normal care replies. No model call delays the handoff.
+        risk = classify_risk(text, care_domain=self.care_domain, history=self.history)
+        if risk.get("route_to") == "URGENT_ASSISTANCE":
+            self.last_user_text = text
+            self.care_domain = self.care_domain or detect_care_domain(text)
+            self.risk_level = "external_route"
+            self.state = "TRANSFER_EXTERNAL_ABNORMALITY"
+            self.round_no += 1
+            self.history.append({"role": "user", "content": text})
+            self.urgent_assistance = submit_urgent_assistance(
+                elderly_id=self.elderly_id, session_id=self.session_id,
+                care_domain=self.care_domain, raw_text=text,
+                matched_risk=risk["matched"], history=self.history,
+                round_no=self.round_no,
+                dry_run=self.dry_run and not self.record_urgent_needs,
+            )
+            if self.urgent_assistance["status"] == "recorded":
+                self.shared_need_id = self.urgent_assistance["need_id"]
+                self.assistance_request_id = self.urgent_assistance["assistance_request_id"]
+                self.staff_follow_up_created = True
+                self.shared_need_error = None
+            elif self.urgent_assistance["status"] == "failed":
+                self.shared_need_error = self.urgent_assistance.get("error")
+            return self._base_result(
+                ok=self.urgent_assistance["status"] != "failed",
+                reply=urgent_reply(self.urgent_assistance),
+                transfer_to="URGENT_ASSISTANCE", transfer_text=text,
+                matched_risk=risk["matched"], end_reason="external_abnormality_route",
+            )
+
         # -------------------------------------------------
         # 老人主动结束
         # -------------------------------------------------
@@ -538,44 +576,6 @@ class CareConsultation:
         self.last_personalized_risk = (
             personalized_risk
         )
-
-
-        # 明显异常不作为护理咨询最高风险档。
-        # 直接交给团队异常处理场景。
-        if risk.get(
-            "route_to"
-        ):
-
-            self.risk_level = (
-                "external_route"
-            )
-
-            self.state = (
-                "TRANSFER_EXTERNAL_ABNORMALITY"
-            )
-
-            return self._base_result(
-                reply=(
-                    "您说的这个情况不属于一般日常护理咨询，"
-                    "我现在转到异常情况处理流程。"
-                ),
-
-                transfer_to=
-                    risk[
-                        "route_to"
-                    ],
-
-                transfer_text=
-                    text,
-
-                matched_risk=
-                    risk[
-                        "matched"
-                    ],
-
-                end_reason=
-                    "external_abnormality_route",
-            )
 
 
         current_risk = (

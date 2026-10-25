@@ -331,6 +331,12 @@ class CareNeedBridge:
         )
 
 
+        # The platform owns an urgent task after the atomic database handoff.
+        # Ending/interruption of speech must never mark that task completed,
+        # cancel it, lower its priority, or overwrite a platform acknowledgement.
+        if risk_level == "external_route" or old_details.get("urgent_assistance") is True:
+            return row
+
         details = {
             **old_details,
 

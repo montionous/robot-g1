@@ -32,6 +32,7 @@ from speech.prepared_audio import PreparedPromptCatalog
 from decision_announcer import announce_decision
 from companion_recording import (
     record_asr,
+    record_receipt,
     record_speech_receipt,
     record_speech_request,
     recording_mark_interrupted,
@@ -49,6 +50,8 @@ from robot_leds import (
 from robot_actions import (
     RobotActionClient,
 )
+
+from care_risk import classify_risk
 
 from care_controller import (
     CareConsultation,
@@ -442,11 +445,8 @@ def build_care_decision_message(
         == "URGENT_ASSISTANCE"
     ):
 
-        return (
-            "您描述的情况"
-            "不属于一般日常护理咨询，"
-            "将转交异常情况处理流程。"
-        )
+        # The urgent handoff has its own single, receipt-dependent notice.
+        return None
 
 
     if (
@@ -587,6 +587,35 @@ def build_care_decision_message(
     return None
 
 
+def finish_urgent_handoff(*, result, speech, dialect, leds, session_id, consultation, current_text):
+    """Commit happened in the controller; announce once and end without gestures."""
+    receipt = result.get("urgent_assistance") or {}
+    log("紧急求助数据库回执", str(receipt))
+    record_receipt({"kind": "care_urgent_assistance", **receipt})
+    if receipt.get("status") == "failed":
+        recording_mark_failed(RuntimeError("urgent_assistance_not_recorded"))
+    if receipt.get("status") == "simulated":
+        log("紧急求助", "当前演示仅模拟；没有写入正式待办。使用 --record-urgent-needs 可单独开启紧急求助入库。")
+    try:
+        # Database metadata errors must not suppress the urgent spoken notice.
+        speak(speech, result["reply"], dialect=dialect)
+        try:
+            save_user_message(session_id=session_id, consultation=consultation, text=current_text)
+            update_session_context(session_id=session_id, care_domain=result.get("care_domain"),
+                                   risk_level=result.get("risk_level"))
+            save_assistant_message(session_id=session_id, consultation=consultation,
+                                   text=result["reply"], tags=["urgent_assistance"])
+        except Exception as exc:
+            log("紧急求助会话记录异常", repr(exc))
+            recording_mark_failed(exc)
+    finally:
+        try:
+            finalize_care_session(session_id=session_id, consultation=consultation,
+                                  end_reason="external_abnormality_route")
+        finally:
+            leds.show("off", source="care_consultation_support:urgent_handoff_end")
+
+
 def run_scene(
     *,
     elderly_id,
@@ -599,6 +628,7 @@ def run_scene(
     confirm_g1_actions=False,
     robot_leds="off",
     confirm_g1_led_demo=False,
+    record_urgent_needs=False,
 ):
 
     print()
@@ -742,7 +772,8 @@ def run_scene(
     )
 
     care_detected = (
-        is_care_trigger(
+        classify_risk(first_text).get("route_to") == "URGENT_ASSISTANCE"
+        or is_care_trigger(
             first_text
         )
     )
@@ -871,10 +902,11 @@ def run_scene(
                 model_round_budget,
 
             # showcase 只展示完整护理能力，
-            # 不写工作人员关注事项、
-            # elder_need 或长期护理记忆。
+            # 默认不写工作人员事项和 elder_need；
+            # record_urgent_needs 可单独开启紧急待办，长期记忆仍不写。
             dry_run=
                 showcase,
+            record_urgent_needs=record_urgent_needs,
         )
     )
 
@@ -961,6 +993,12 @@ def run_scene(
 
                 return
 
+
+            if result.get("transfer_to") == "URGENT_ASSISTANCE":
+                finish_urgent_handoff(result=result, speech=speech, dialect=dialect, leds=leds,
+                                      session_id=session_id, consultation=consultation,
+                                      current_text=current_text)
+                return
 
             # 每一轮老人原话自动保存。
             save_user_message(
@@ -1591,6 +1629,11 @@ def main():
     )
 
     parser.add_argument(
+        "--record-urgent-needs", action="store_true",
+        help="演示模式也将紧急求助写入正式共享需求和工作人员事项；不写长期记忆",
+    )
+
+    parser.add_argument(
         "--robot-actions",
         choices=("off", "dry-run", "execute"),
         default="dry-run",
@@ -1654,6 +1697,7 @@ def main():
             listen_seconds=args.listen_seconds,
             announce_decisions=args.announce_decisions,
             showcase=args.showcase,
+            record_urgent_needs=args.record_urgent_needs,
             robot_actions=args.robot_actions,
             confirm_g1_actions=args.confirm_g1_actions,
             robot_leds=args.robot_leds,
