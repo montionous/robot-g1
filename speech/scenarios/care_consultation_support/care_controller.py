@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 
+from care_question_state import (
+    analyze_care_questions, guard_care_questions, question_state_prompt,
+)
+
 from care_db import (
     create_assistance_request,
 )
@@ -109,6 +113,7 @@ class CareConsultation:
         self.last_personalization_plan = None
         self.last_personalization_check = None
         self.last_personalized_risk = None
+        self.last_question_state = None
 
         self.llm = (
             llm
@@ -158,6 +163,8 @@ class CareConsultation:
 
             "shared_need_error":
                 self.shared_need_error,
+
+            "question_state": self.last_question_state,
 
             "personalization_plan":
                 self.last_personalization_plan,
@@ -646,6 +653,7 @@ class CareConsultation:
         self.last_personalization_plan = (
             personalization_plan
         )
+        self.last_question_state = analyze_care_questions(self.history)
 
 
         prompt = (
@@ -685,6 +693,8 @@ class CareConsultation:
                 + personalization_context
             )
 
+
+        policy_context += "\n\n" + question_state_prompt(self.last_question_state)
 
         prompt["tags"][
             "PERSONALIZED"
@@ -867,6 +877,17 @@ class CareConsultation:
                         "fallback_used"
                     ] = True
 
+
+        # This guard follows both model attempts and the program fallback.
+        # An answered question must not be reintroduced by either path.
+        guarded_reply = guard_care_questions(reply, self.last_question_state)
+        guard_changed = guarded_reply != reply
+        reply = guarded_reply
+        previous_check = check
+        check = check_personalized_reply(reply, personalization_plan)
+        check["retry_count"] = previous_check["retry_count"]
+        check["fallback_used"] = previous_check["fallback_used"]
+        check["repeated_question_removed"] = guard_changed
 
         self.last_personalization_check = (
             check

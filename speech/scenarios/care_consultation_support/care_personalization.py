@@ -3,6 +3,8 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
+from care_question_state import analyze_care_questions, apply_question_state
+
 from care_memory import (
     get_care_memories,
 )
@@ -504,42 +506,9 @@ def build_personalization_plan(
         # “与本人平时基线比较”。
         # -------------------------------------------------
 
-        comparison_done = (
-            _contains_any(
-                conversation_text,
-                [
-                    "比平时",
-                    "和平时",
-                    "和平常",
-                    "比平常",
-                    "明显一点",
-                    "明显一些",
-                    "更酸",
-                    "更疼",
-                    "更难受",
-                    "差不多",
-                    "严重一点",
-                    "厉害一点",
-                ],
-            )
-        )
-
-        walking_known = (
-            _contains_any(
-                conversation_text,
-                [
-                    "走路还稳",
-                    "走路挺稳",
-                    "走路稳定",
-                    "走路还算稳",
-                    "还算稳",
-                    "站得稳",
-                    "站立还稳",
-                    "走路不稳",
-                    "站不稳",
-                ],
-            )
-        )
+        question_state = analyze_care_questions(history, user_text)
+        comparison_done = "baseline_comparison" in question_state["confirmed"]
+        walking_known = "walking" in question_state["confirmed"]
 
         asking_activity = (
             _contains_any(
@@ -2334,7 +2303,7 @@ def build_personalization_plan(
             ]
 
 
-    return plan
+    return apply_question_state(plan, analyze_care_questions(history, user_text))
 
 
 def build_personalization_prompt(
