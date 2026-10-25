@@ -129,10 +129,13 @@ def submit_urgent_assistance(*, elderly_id, session_id, care_domain, raw_text,
 
 
 def urgent_reply(receipt):
+    # Acknowledge distress without promising recovery, staff arrival, or
+    # continued listening after this bounded speech scene has ended.
+    reassurance = "您先别着急，刚才说的情况我已经认真听到了。"
     if receipt["status"] == "recorded":
-        return ("您描述的情况需要工作人员马上查看。"
-                "我已记录紧急求助，等待工作人员处理。")
+        return (reassurance + "我已记录紧急求助，需要工作人员马上查看。"
+                "您不用勉强把刚才的话再说一遍。")
     if receipt["status"] == "simulated":
-        return "您描述的情况需要工作人员马上查看，请现场人员立即联系工作人员。"
-    return ("您描述的情况需要工作人员马上查看。"
+        return reassurance + "这需要工作人员马上查看，请现场人员立即联系工作人员。"
+    return (reassurance + "这需要工作人员马上查看。"
             "紧急求助暂时未能提交，请现场人员立即联系工作人员。")
