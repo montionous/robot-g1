@@ -147,3 +147,12 @@ set -o pipefail; data/visual/venv-emotion/bin/python scripts/g1_elder_companion_
 ```
 
 `--g1-pcm-bridge ./build/g1_companion_pcm_bridge --confirm-g1-companion-pcm --dialect mandarin` 才是有界实机播放路径：每次最多三条，按 `stable_face` / `possible` 从审核短句中随机选择，WAV 在 SDK 初始化前校验且每条最长 15 秒。2026-09-08 的旧 `TtsMaker` 相机回执只证明旧播放周期；PCM 普通话路线已有隔离场次的 G1 播放回执，并已并回正式相机命令。
+
+
+## 娱乐媒体可用性
+
+本地曲库通过 `ffprobe` 检查音频流的采样率和声道数，不只依据文件扩展名。
+无有效音频流、探测失败或超过 3 秒的文件会保留在原位置，但从本次可选曲库中排除，并在控制台说明。
+同一文件大小和修改时间未变时复用检查结果；泛点播、历史偏好、换曲和启动曲库数量检查使用同一份可播放候选。
+如果剩余音乐不足两首，比赛展示版在开场动作前报错，避免中途才发现曲目不足。
+本次实测发现 `03_邓丽君-小城故事.flac` 的音频采样率和声道均为 0；原媒体未删除或覆盖。

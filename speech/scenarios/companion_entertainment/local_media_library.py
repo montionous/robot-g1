@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import re
+import json
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -159,6 +161,7 @@ def clean_search_query(text):
 class LocalMediaLibrary:
 
     def __init__(self):
+        self._audio_probe_cache = {}
 
         for directory in (
             CATEGORY_DIRS.values()
@@ -167,6 +170,36 @@ class LocalMediaLibrary:
                 parents=True,
                 exist_ok=True,
             )
+
+
+    def _has_audio(self, path):
+        """Probe each file version once; extensions alone do not prove audio."""
+        try:
+            stat = path.stat()
+            version = (stat.st_size, stat.st_mtime_ns)
+            cached = self._audio_probe_cache.get(path)
+            if cached is not None and cached[0] == version:
+                return cached[1]
+            result = subprocess.run(
+                ["ffprobe", "-v", "error", "-select_streams", "a:0",
+                 "-show_entries", "stream=sample_rate,channels", "-of", "json", str(path)],
+                check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                text=True, timeout=3.0,
+            )
+            streams = json.loads(result.stdout).get("streams", [])
+            playable = bool(streams and int(streams[0].get("sample_rate", 0)) > 0
+                            and int(streams[0].get("channels", 0)) > 0)
+            reason = "没有有效音频流" if not playable else ""
+        except (OSError, subprocess.SubprocessError, ValueError, TypeError, AttributeError, IndexError) as exc:
+            playable = False
+            reason = type(exc).__name__
+            # A disappearing file is excluded without caching a stale version.
+            if "version" not in locals():
+                return False
+        self._audio_probe_cache[path] = (version, playable)
+        if not playable:
+            print(f"媒体不可用，跳过：{path.name}（{reason}）", flush=True)
+        return playable
 
 
     def list_items(
@@ -197,6 +230,8 @@ class LocalMediaLibrary:
             key=lambda p:
                 p.name.lower()
         )
+
+        paths = [path for path in paths if self._has_audio(path)]
 
         return [
             MediaItem(
