@@ -289,6 +289,11 @@ def main():
                         max_rounds=20,
                         llm=OfflineCareLLM(),
                         dry_run=True,
+                        answer_judge=type("OfflineAnswerJudge", (), {
+                            "classify": lambda *args, **kwargs: {
+                                "status": "unclear", "confidence": 0.0,
+                            }
+                        })(),
                     )
                 )
 

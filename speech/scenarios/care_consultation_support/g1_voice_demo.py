@@ -1171,6 +1171,9 @@ def run_scene(
                 )
 
 
+            if result.get("answer_decision"):
+                log("护理回答判断", str(result["answer_decision"]))
+
             reply = result.get(
                 "reply"
             )

@@ -130,7 +130,8 @@ class CareControllerQuestionTests(unittest.TestCase):
         self.llm.generate_reply.side_effect=lambda **kw:{
             'text': '您之前的膝部档案记着平时偶有酸胀。'+BASELINE if kw['round_no']==1 else WALK,
             'llm_ms':1,'model':'offline'}
-        self.care=care_controller.CareConsultation(elderly_id=1,session_id=1,llm=self.llm,dry_run=True)
+        self.care=care_controller.CareConsultation(elderly_id=1,session_id=1,llm=self.llm,dry_run=True,
+            answer_judge=Mock(classify=Mock(side_effect=RuntimeError("offline judge unavailable"))))
 
     def prepare_walking_question(self):
         self.care.start('我今天膝盖有点酸。',preclassified=True)

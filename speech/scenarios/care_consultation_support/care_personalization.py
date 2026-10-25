@@ -263,7 +263,10 @@ def build_personalization_plan(
     round_no,
     history=None,
     risk_level=None,
+    question_state=None,
 ):
+
+    question_state = question_state or analyze_care_questions(history, user_text)
 
     profile = (
         get_personal_care_profile(
@@ -506,7 +509,6 @@ def build_personalization_plan(
         # “与本人平时基线比较”。
         # -------------------------------------------------
 
-        question_state = analyze_care_questions(history, user_text)
         comparison_done = "baseline_comparison" in question_state["confirmed"]
         walking_known = "walking" in question_state["confirmed"]
 
@@ -2303,7 +2305,7 @@ def build_personalization_plan(
             ]
 
 
-    return apply_question_state(plan, analyze_care_questions(history, user_text))
+    return apply_question_state(plan, question_state)
 
 
 def build_personalization_prompt(

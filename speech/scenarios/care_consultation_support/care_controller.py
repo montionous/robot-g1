@@ -2,8 +2,10 @@ from __future__ import annotations
 
 
 from care_question_state import (
-    analyze_care_questions, guard_care_questions, question_state_prompt,
+    analyze_care_questions, guard_care_questions, question_state_prompt, question_topics,
 )
+
+from care_answer_judge_llm import CareAnswerJudgeLLM
 
 from care_db import (
     create_assistance_request,
@@ -55,6 +57,7 @@ class CareConsultation:
         max_rounds=20,
         llm=None,
         dry_run=False,
+        answer_judge=None,
     ):
 
         self.elderly_id = elderly_id
@@ -114,6 +117,9 @@ class CareConsultation:
         self.last_personalization_check = None
         self.last_personalized_risk = None
         self.last_question_state = None
+        self.answer_judge = answer_judge
+        self.answer_decisions = {}
+        self.last_answer_decision = None
 
         self.llm = (
             llm
@@ -165,6 +171,7 @@ class CareConsultation:
                 self.shared_need_error,
 
             "question_state": self.last_question_state,
+            "answer_decision": self.last_answer_decision,
 
             "personalization_plan":
                 self.last_personalization_plan,
@@ -328,6 +335,38 @@ class CareConsultation:
             )
 
             return None
+
+
+    def _judge_current_answer(self):
+        self.last_answer_decision = None
+        if len(self.history) < 2 or self.history[-2].get("role") != "assistant":
+            return
+        question = self.history[-2]["content"]
+        topics = question_topics(question)
+        if len(topics) != 1:
+            return
+        topic = next(iter(topics))
+        previous = analyze_care_questions(self.history[:-1], answer_decisions=self.answer_decisions)
+        if topic in previous["confirmed"]:
+            return
+        try:
+            if self.answer_judge is None:
+                self.answer_judge = CareAnswerJudgeLLM()
+            decision = self.answer_judge.classify(
+                question=question, answer=self.history[-1]["content"],
+                topic=topic, history=self.history[:-2],
+            )
+            used = decision["confidence"] >= 0.80
+            self.last_answer_decision = {**decision, "source": "llm", "used": used}
+            if used:
+                self.answer_decisions[len(self.history)-1] = decision
+        except Exception as exc:
+            # The existing conservative state rules remain available on failure.
+            # No LLM error or low-confidence output creates a new health fact.
+            self.last_answer_decision = {
+                "source": "rule_fallback", "topic": topic, "used": False,
+                "reason": type(exc).__name__,
+            }
 
 
     def handle_user_text(
@@ -628,6 +667,11 @@ class CareConsultation:
         # 个体化护理规划
         # -------------------------------------------------
 
+        self._judge_current_answer()
+        self.last_question_state = analyze_care_questions(
+            self.history, answer_decisions=self.answer_decisions,
+        )
+
         personalization_plan = (
             build_personalization_plan(
                 elderly_id=
@@ -647,13 +691,14 @@ class CareConsultation:
 
                 risk_level=
                     self.risk_level,
+
+                question_state=self.last_question_state,
             )
         )
 
         self.last_personalization_plan = (
             personalization_plan
         )
-        self.last_question_state = analyze_care_questions(self.history)
 
 
         prompt = (

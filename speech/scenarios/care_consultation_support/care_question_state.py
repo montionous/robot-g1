@@ -71,7 +71,7 @@ def _explicit_topics(text):
     return topics
 
 
-def analyze_care_questions(history, user_text=""):
+def analyze_care_questions(history, user_text="", *, answer_decisions=None):
     turns = list(history or [])
     text = str(user_text or "").strip()
     if text and (not turns or turns[-1].get("role") != "user" or turns[-1].get("content") != text):
@@ -81,7 +81,7 @@ def analyze_care_questions(history, user_text=""):
     previous_questions = set()
     repeat_requested = set()
     current_text = ""
-    for turn in turns:
+    for index, turn in enumerate(turns):
         role = turn.get("role")
         value = str(turn.get("content") or "").strip()
         if role == "assistant":
@@ -90,6 +90,7 @@ def analyze_care_questions(history, user_text=""):
         elif role == "user":
             current_text = value
             repeat_requested = set()
+            explicit = set()
             if UNCLEAR.search(value):
                 repeat_requested = previous_questions - confirmed.keys()
             elif not UNKNOWN.search(value):
@@ -98,8 +99,20 @@ def analyze_care_questions(history, user_text=""):
                     topic = next(iter(previous_questions))
                     if SHORT_ANSWER.fullmatch(value) or (topic == "duration" and DURATION.search(value)):
                         explicit.add(topic)
-                for topic in explicit:
-                    confirmed[topic] = value
+            decision = (answer_decisions or {}).get(index)
+            if decision and decision.get("topic") in previous_questions and decision.get("confidence", 0) >= .80:
+                topic = decision["topic"]
+                if decision.get("status") == "answered":
+                    evidence = decision.get("evidence", "")
+                    if evidence.strip() and evidence in value:
+                        explicit.add(topic)
+                        repeat_requested.discard(topic)
+                elif decision.get("status") in {"unclear", "not_answered", "repeat_requested"}:
+                    explicit.discard(topic)
+                    if decision["status"] == "repeat_requested" and topic not in confirmed:
+                        repeat_requested.add(topic)
+            for topic in explicit:
+                confirmed[topic] = value
             # Never attach a later bare answer to a question interrupted by an
             # intervening user turn, or to a statement in the next robot reply.
             previous_questions = set()
