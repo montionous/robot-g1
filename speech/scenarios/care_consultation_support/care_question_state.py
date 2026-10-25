@@ -12,6 +12,8 @@ LABELS = {
     "walking": "当前站立、行走与平时的比较",
     "baseline_comparison": "本次不适与平时的比较",
     "duration": "本次不适的持续时间",
+    "onset": "本次不适是否刚出现及起始时间",
+    "recent_course": "近期同类记录之后的持续、缓解或再次出现",
     "injury": "近期摔倒、扭伤或碰撞",
 }
 UNCLEAR = re.compile(r"没听[清见懂]|听不[清见懂]|再说一[遍次]|重复一[遍次]|什么意思|不明白")
@@ -41,8 +43,13 @@ def question_topics(text):
     for sentence in sentences(text):
         if not QUESTION.search(sentence):
             continue
+        if (re.search(r"上次|前几天|那次|近期记录|最近记录|提过类似|记录过类似", sentence)
+                and re.search(r"一直|持续|缓解|又出现|到现在|变化", sentence)):
+            topics.add("recent_course")
+        elif re.search(r"最近才|刚刚出现|刚出现|刚开始|新出现|第一次|头一回|什么时候开始|何时开始|最近.{0,8}出现.{0,12}还是", sentence):
+            topics.add("onset")
         # Duration is its own information point, even when it concerns walking.
-        if re.search(r"多久|多长时间|几天|什么时候|何时", sentence):
+        elif re.search(r"多久|多长时间|几天|什么时候|何时", sentence):
             topics.add("duration")
         elif WALKING.search(sentence) and re.search(r"稳|平时|平常|影响|困难|能否|能不能|怎么样|如何|费力|还好", sentence):
             topics.add("walking")
@@ -60,6 +67,11 @@ def _explicit_topics(text):
             continue
         if WALKING.search(sentence) and re.search(r"稳|困难|费力|影响|不如|差不多|一样", sentence):
             topics.add("walking")
+        if re.search(r"(?:昨天|今天|前天|昨晚|上周|这周|早上|下午|晚上).*(?:开始|出现|才疼|才酸)|(?:刚刚|刚才)(?:开始|出现)", sentence):
+            topics.add("onset")
+        if (re.search(r"上次|前几天|那次|之前|上回", sentence)
+                and re.search(r"一直没缓解|一直没好|缓解后|好了.*又|好过.*又", sentence)):
+            topics.add("recent_course")
         if (COMPARISON.search(sentence) and re.search(r"明显|更|一样|差不多|不如|加重|减轻", sentence)
                 and not WALKING.search(sentence)):
             topics.add("baseline_comparison")
@@ -126,12 +138,21 @@ def analyze_care_questions(history, user_text="", *, answer_decisions=None):
 
 def blocked_topics(state):
     # Re-ask an unanswered item only when the elder explicitly asks to hear it.
-    return set(state["confirmed"]) | (set(state["asked"]) - set(state["repeat_requested"]))
+    blocked = set(state["confirmed"]) | (set(state["asked"]) - set(state["repeat_requested"]))
+    if state.get("recent_related_history"):
+        blocked.add("onset")
+        if {"onset", "duration"} & set(state["confirmed"]):
+            blocked.add("recent_course")
+    return blocked
 
 
 def safe_follow_up(state):
     if state["support_requested"]:
         return "您先别着急，我在这里陪着您，您可以慢慢说。"
+    recent = state.get("recent_related_history")
+    if recent and "recent_course" not in blocked_topics(state):
+        return (f"您在{recent['observation_date']}提过类似不适，"
+                "这次是一直没缓解，还是缓解后又出现了？")
     return "您刚才说的情况我了解了，您还有想告诉我的，可以慢慢说。"
 
 
@@ -155,6 +176,13 @@ def question_state_prompt(state):
         lines.append(f"- {LABELS[topic]}已问但未获明确回答：先回应当前话题，不机械重复。")
     for topic in state["repeat_requested"]:
         lines.append(f"- 老人表示没听清：允许简短重述尚未回答的{LABELS[topic]}。")
+    recent = state.get("recent_related_history")
+    if recent:
+        lines.append(f"- {recent['observation_date']}已有同类不适记录（最近{recent['window_days']}天内）。")
+        lines.append("- 老人未主动说明本次为新发时，不再泛问是否最近才出现、是否第一次或何时开始。")
+        lines.append("- 如病程仍需了解，应结合上述记录问此前之后一直未缓解还是缓解后又出现；该问题已答也不得再问。")
+        lines.append("- 记录日期不等于症状持续时长，不得假定一直未缓解或把过去功能状态当成现在。")
+        lines.append("- 老人已主动说明本次起始时间、持续时间或上次之后的病程时，不再追问这些已明确的信息。")
     if state["support_requested"]:
         lines.append("- 本轮老人需要安抚陪伴：先回应担心、陪伴需求，暂停护理追问；不保证健康无危险。")
     return "\n".join(lines)

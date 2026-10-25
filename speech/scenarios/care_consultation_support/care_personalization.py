@@ -4,6 +4,7 @@ import sqlite3
 from pathlib import Path
 
 from care_question_state import analyze_care_questions, apply_question_state
+from care_recent_history import apply_recent_history
 
 from care_memory import (
     get_care_memories,
@@ -2305,6 +2306,8 @@ def build_personalization_plan(
             ]
 
 
+    apply_recent_history(plan, care_domain=care_domain, user_text=user_text,
+                         history=history, question_state=question_state)
     return apply_question_state(plan, question_state)
 
 
