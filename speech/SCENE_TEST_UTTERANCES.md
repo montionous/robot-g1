@@ -97,6 +97,13 @@ test -f /home/user/github-product/g1-dex3-care-vla/scripts/g1_companion_led_test
 
 `我胸口很痛，喘不上气。` 会进入紧急协助转场；除非正在专门检查该分支，不建议在普通彩排中说这句话。
 
+头痛分级采用本项目老人护理策略：普通头痛至少进入 `needs_staff`（中风险、工作人员关注），
+不因“头痛”两个字直接转异常。高风险复测台词：`我的头突然疼得特别厉害。`，
+需要同时明确突发和异常剧烈，命中后直接 `URGENT_ASSISTANCE` 转场，不依赖老人自述说话不清楚。
+也支持先说头痛、下一轮明确补充突发剧烈；含糊肯定多个并列症状不能被当作具体症状。
+突发且极剧烈头痛的警示依据：[NHS](https://www.nhs.uk/symptoms/headaches/)；
+“普通头痛至少需要工作人员关注”是本项目的保守交互策略，并非医学诊断或通用风险评分。
+
 ## 2. 娱乐陪伴
 
 普通版入口：`scenarios/companion_entertainment/run_g1_demo.sh`。它默认陕西话交互，可用 `--dialect mandarin` 覆盖。普通版会依据共享需求库优先选择老人以前点过的内容。

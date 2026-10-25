@@ -534,6 +534,9 @@ def build_care_decision_message(
             )
 
 
+        if "headache_staff_review" in result.get("matched_risk", []) and result.get("risk_reason"):
+            decision_text = str(result["risk_reason"])
+
         # 正式运行：
         # 确实创建了工作人员关注事项。
         if result.get(

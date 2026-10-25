@@ -505,6 +505,7 @@ class CareConsultation:
             text,
             care_domain=
                 self.care_domain,
+            history=self.history,
         )
 
 
@@ -961,7 +962,10 @@ class CareConsultation:
                 or {}
             )
 
-            if personalized_risk.get(
+            if risk.get("reason"):
+                follow_up_summary = str(risk["reason"])
+
+            elif personalized_risk.get(
                 "applied",
                 False,
             ):
@@ -1139,6 +1143,8 @@ class CareConsultation:
                 risk[
                     "matched"
                 ],
+
+            risk_reason=risk.get("reason"),
 
             new_staff_follow_up=
                 new_staff_follow_up,

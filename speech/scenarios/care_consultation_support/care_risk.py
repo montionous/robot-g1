@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from care_headache_risk import classify_headache_risk
+
 
 # =========================================================
 # 不属于“日常护理咨询”的明显异常表现
@@ -60,6 +62,7 @@ def classify_risk(
     text,
     *,
     care_domain=None,
+    history=None,
 ):
 
     value = (
@@ -86,6 +89,10 @@ def classify_risk(
                 "URGENT_ASSISTANCE",
         }
 
+
+    headache_risk = classify_headache_risk(text, history=history)
+    if headache_risk is not None:
+        return headache_risk
 
     staff_hits = [
         phrase
