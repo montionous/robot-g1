@@ -98,7 +98,8 @@ PREPARED_PROMPTS = PreparedPromptCatalog(
 )
 
 
-PRESENT_LEAD_SECONDS = 1.5
+PRESENT_START_DELAY_SECONDS = 0.5
+PRESENT_LEAD_SECONDS = 1.0
 
 
 from entertainment_need_integration import EntertainmentNeedSession
@@ -587,6 +588,7 @@ def execute_action(
     player,
     announce_decisions,
     led_announcement=False,
+    actions=None,
 ):
     if action == PLAY_MUSIC:
 
@@ -718,6 +720,12 @@ def execute_action(
             enabled=
                 announce_decisions,
         )
+
+        # The decision has finished speaking; wave with the farewell reply.
+        if actions is not None:
+            trigger_robot_action(
+                actions, "goodbye", source="companion_entertainment_showcase:end",
+            )
 
         end_reply = INTERACTION_REPLIES[END]
         if led_announcement:
@@ -1227,6 +1235,9 @@ def run_scene(
                     and not presented_once
                 ):
 
+                    # Shift the gesture 0.5 s later without delaying speech:
+                    # preserve the existing 1.5 s total pre-announcement budget.
+                    time.sleep(PRESENT_START_DELAY_SECONDS)
                     trigger_robot_action(
                         actions,
                         "present",
@@ -1245,18 +1256,8 @@ def run_scene(
 
                     presented_once = True
 
-                if action == END:
-
-                    trigger_robot_action(
-                        actions,
-                        "goodbye",
-                        source=(
-                            "companion_entertainment_showcase:"
-                            "end"
-                        ),
-                    )
-
                 execute_action(
+                    actions=actions,
                     action=action,
                     speech=speech,
                     entertainment=
