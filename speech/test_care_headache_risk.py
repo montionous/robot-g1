@@ -17,6 +17,21 @@ class HeadacheRiskTests(unittest.TestCase):
                 self.assertEqual(result['risk_level'],'needs_staff')
                 self.assertIsNone(result['route_to'])
 
+    def test_spoken_and_live_asr_headache_wordings_still_need_staff(self):
+        for text in ('我今天头都点疼。','我头有些疼。','头有一点点疼。','我头有点儿疼。'):
+            with self.subTest(text=text):
+                result=classify_risk(text)
+                self.assertEqual(result['risk_level'],'needs_staff')
+                self.assertIsNone(result['route_to'])
+                history=[user(text),robot('什么时候开始的？')]
+                self.assertEqual(classify_risk('刚开始的。',history=history)['risk_level'],'needs_staff')
+
+    def test_looser_headache_wording_does_not_borrow_other_pain_or_past_facts(self):
+        for text in ('我以前头有些疼。','如果头有一点点疼怎么办？',
+                     '头有些痒，膝盖有点疼。','我没有头痛，只有腿有点疼。'):
+            with self.subTest(text=text):
+                self.assertEqual(classify_risk(text)['risk_level'],'low')
+
     def test_simple_sudden_severe_utterances_route_urgent(self):
         for text in ('我的头突然疼得特别厉害。','我突然头痛的厉害。',
                      '脑袋一下子痛得受不了。','突然剧烈头痛。'):
@@ -89,6 +104,15 @@ class HeadacheControllerTests(unittest.TestCase):
         self.assertIsNone(result['assistance_request_id'])
         self.assertEqual(result['risk_reason'],'您提到头痛，需要工作人员进一步了解。')
         later=self.care.handle_user_text('刚刚开始。')
+        self.assertEqual(later['risk_level'],'needs_staff')
+        self.assertFalse(later['new_staff_follow_up'])
+
+    def test_live_asr_miswording_creates_staff_review_and_keeps_it_next_turn(self):
+        result=self.care.start('我今天头都点疼。',preclassified=True)
+        self.assertEqual(result['risk_level'],'needs_staff')
+        self.assertTrue(result['new_staff_follow_up'])
+        self.assertTrue(result['staff_follow_up_simulated'])
+        later=self.care.handle_user_text('刚开始的。')
         self.assertEqual(later['risk_level'],'needs_staff')
         self.assertFalse(later['new_staff_follow_up'])
 
