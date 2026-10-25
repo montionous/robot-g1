@@ -745,16 +745,6 @@ def run_scene(
                     blocking=False,
                 )
 
-            elif action == "end":
-                actions.play(
-                    "goodbye",
-                    source=(
-                        "social_activity_support:"
-                        "end"
-                    ),
-                    blocking=False,
-                )
-
             decision_message = (
                 build_decision_message(
                     intent,
@@ -771,6 +761,12 @@ def run_scene(
                     dialect=
                         ANNOUNCER_DIALECT,
                     prepared_prompts=PREPARED_PROMPTS,
+                )
+
+            # Finish the decision announcement before waving with the farewell.
+            if action == "end":
+                actions.play(
+                    "goodbye", source="social_activity_support:end", blocking=False,
                 )
 
             reply = (
